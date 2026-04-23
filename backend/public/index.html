@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AAU Cafe & Stipend System</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <div class="brand">Addis Ababa University</div>
+          <div class="subtitle">Cafe Management and Stipend System</div>
+        </div>
+        <nav class="nav-links">
+          <a href="/">Registration</a>
+          <a href="/student">Student Portal</a>
+          <a href="/admin">Admin</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container">
+      <section class="hero">
+        <h1>Student Self Registration</h1>
+        <p>College of Technology and Built Environment (5 Kilo) - first-time student onboarding.</p>
+      </section>
+
+      <section class="card">
+        <h2>Registration Form</h2>
+        <form id="studentForm" class="form-grid">
+          <label>Student ID <input name="student_id" required /></label>
+          <label>First Name <input name="first_name" required /></label>
+          <label>Last Name <input name="last_name" required /></label>
+          <label>Year of Study <input name="year_of_study" type="number" min="1" max="7" required /></label>
+          <label class="full">Department
+            <select name="dept_id" id="deptSelect" required></select>
+          </label>
+          <label>Cafe Status
+            <select name="cafe_status" id="cafeStatus" required>
+              <option value="CAFE">CAFE</option>
+              <option value="NON_CAFE">NON_CAFE</option>
+            </select>
+          </label>
+          <label>Bank Account Number <input name="bank_account_number" id="bankAccount" /></label>
+          <label>Dorm Block
+            <select name="dorm_block" required>
+              <option value="A">A</option>
+              <option value="B">B</option>
+            </select>
+          </label>
+          <label>Floor Number <input name="floor_number" type="number" min="0" required /></label>
+          <label>Dorm Number <input name="dorm_number" required /></label>
+          <label>Choose Username <input name="username" required /></label>
+          <label>Choose Password <input name="password" type="password" required /></label>
+          <small class="full">Password must be 8+ chars with uppercase, lowercase, and number.</small>
+          <button class="full" type="submit">Register</button>
+        </form>
+        <p id="studentMessage" class="message"></p>
+      </section>
+    </main>
+
+    <script src="/register.js"></script>
+  </body>
+</html>

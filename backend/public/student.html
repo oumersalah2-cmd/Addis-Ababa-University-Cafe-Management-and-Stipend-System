@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AAU Student Portal</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <div class="brand">Addis Ababa University</div>
+          <div class="subtitle">Student Portal</div>
+        </div>
+        <nav class="nav-links">
+          <a href="/">Registration</a>
+          <a href="/student">Student Portal</a>
+          <a href="/admin">Admin</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container">
+      <section class="hero">
+        <h1>AAU Student Portal</h1>
+        <p>View your profile, stipend history, and recent meal logs after login.</p>
+      </section>
+
+      <section class="card">
+        <h2>Student Login</h2>
+        <form id="studentLoginForm" class="form-grid">
+          <label>Username <input name="username" required /></label>
+          <label>Password <input name="password" type="password" required /></label>
+          <button class="full" type="submit">Login</button>
+        </form>
+        <button id="studentLogoutBtn" class="inline-btn" type="button">Logout</button>
+        <p id="studentLoginMessage" class="message"></p>
+      </section>
+
+      <section class="card">
+        <h2>My Profile</h2>
+        <pre id="profileBox">Login to view your profile.</pre>
+      </section>
+
+      <section class="card">
+        <h2>Latest Payment Status</h2>
+        <div id="latestPaymentBox" class="payment-summary">
+          Login to view your latest payment update.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>My Stipend History</h2>
+        <ul id="stipendHistory"><li>Login to view stipend records.</li></ul>
+      </section>
+
+      <section class="card">
+        <h2>My Recent Meal Logs</h2>
+        <ul id="mealHistory"><li>Login to view meal logs.</li></ul>
+      </section>
+    </main>
+
+    <script src="/student.js"></script>
+  </body>
+</html>

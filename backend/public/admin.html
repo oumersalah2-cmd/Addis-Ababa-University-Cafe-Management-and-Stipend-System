@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AAU Admin Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <div class="brand">Addis Ababa University</div>
+          <div class="subtitle">Administrative Dashboard</div>
+        </div>
+        <nav class="nav-links">
+          <a href="/">Registration</a>
+          <a href="/student">Student Portal</a>
+          <a href="/admin">Admin</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container">
+      <section class="hero">
+        <h1>AAU Admin Dashboard</h1>
+        <p>Secure workspace for student approvals, stipend operations, reporting, and audit tracking.</p>
+      </section>
+
+      <section class="card">
+        <h2>Admin Login</h2>
+        <form id="adminLoginForm" class="form-grid">
+          <label>Admin Username <input name="username" value="admin_main" required /></label>
+          <label>Admin Password <input name="password" type="password" value="admin123" required /></label>
+          <button class="full" type="submit">Admin Login</button>
+        </form>
+        <button id="adminLogoutBtn" class="inline-btn" type="button">Logout</button>
+        <p id="adminMessage" class="message"></p>
+      </section>
+
+      <section class="card">
+        <div class="admin-controls">
+          <button id="refreshAdmin">Refresh Data</button>
+        </div>
+        <h3>Pending Students</h3>
+        <ul id="pendingStudents"><li>Login as admin to load data.</li></ul>
+
+        <h3>Create Stipend</h3>
+        <form id="stipendForm" class="form-grid">
+          <label>Student
+            <select name="student_id" id="nonCafeStudents" required></select>
+          </label>
+          <label>Month (YYYY-MM-01) <input name="stipend_month" type="date" required /></label>
+          <label>Amount <input name="amount" type="number" min="1" step="0.01" value="1800.00" required /></label>
+          <button class="full" type="submit">Create Pending Payment</button>
+        </form>
+        <p id="stipendMessage" class="message"></p>
+
+        <h3>Pending Stipend Confirmations</h3>
+        <ul id="pendingStipends"><li>Login as admin to load data.</li></ul>
+
+        <h3>Monthly Report</h3>
+        <form id="monthlyReportForm">
+          <label>Month (YYYY-MM-01) <input name="month" type="date" required /></label>
+          <button type="submit">Load Report</button>
+        </form>
+        <pre id="monthlyReportBox">Login and choose month to view report.</pre>
+
+        <h3>Recent Admin Activity</h3>
+        <ul id="auditLogList"><li>Login as admin to load activity log.</li></ul>
+      </section>
+    </main>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

@@ -1,0 +1,260 @@
+:root {
+  --aau-primary: #0b3a69;
+  --aau-primary-dark: #072a4d;
+  --aau-accent: #f2b705;
+  --aau-bg: #f3f6fb;
+  --aau-surface: #ffffff;
+  --aau-text: #1c2733;
+  --aau-muted: #5a6674;
+  --aau-border: #d5deea;
+  --aau-success: #0d7a4b;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #eef3fa 0%, var(--aau-bg) 100%);
+  color: var(--aau-text);
+}
+
+.topbar {
+  background: linear-gradient(120deg, var(--aau-primary) 0%, var(--aau-primary-dark) 100%);
+  color: #fff;
+  border-bottom: 4px solid var(--aau-accent);
+}
+
+.topbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.subtitle {
+  opacity: 0.85;
+  font-size: 13px;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nav-links a {
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.nav-links a:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 24px auto 30px;
+  padding: 0 16px;
+}
+
+.hero {
+  background: var(--aau-surface);
+  border: 1px solid var(--aau-border);
+  border-left: 4px solid var(--aau-accent);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  color: var(--aau-primary);
+}
+
+.hero p {
+  margin: 0;
+  color: var(--aau-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--aau-surface);
+  border: 1px solid var(--aau-border);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 4px 14px rgba(10, 40, 70, 0.05);
+}
+
+h2,
+h3 {
+  color: var(--aau-primary);
+  margin-top: 2px;
+}
+
+.card h2 {
+  border-bottom: 1px solid #e3ebf4;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+.form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 12px;
+}
+
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  font-size: 14px;
+  color: #334154;
+}
+
+small {
+  color: var(--aau-muted);
+}
+
+input,
+select,
+button,
+pre {
+  border-radius: 8px;
+}
+
+input,
+select {
+  padding: 10px;
+  border: 1px solid #c7d3e2;
+  background: #fff;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #6d94be;
+  box-shadow: 0 0 0 3px rgba(11, 58, 105, 0.12);
+}
+
+button {
+  padding: 10px 14px;
+  border: none;
+  background: linear-gradient(120deg, var(--aau-primary) 0%, #1e5e97 100%);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+li {
+  background: #f8fbff;
+  border: 1px solid #dde7f2;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+pre {
+  background: #f6f9fd;
+  border: 1px solid #d6e1ed;
+  padding: 12px;
+  overflow-x: auto;
+  color: #1f2f42;
+}
+
+a {
+  color: var(--aau-primary);
+}
+
+.message {
+  min-height: 20px;
+  color: var(--aau-success);
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
+  background: #e9f9f1;
+  border: 1px solid #bdebd4;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.inline-btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+}
+
+.payment-summary {
+  background: #f8fbff;
+  border: 1px solid #dbe8f5;
+  border-left: 4px solid var(--aau-primary);
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 600;
+}
+
+.status-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-paid {
+  background: #d9f8e8;
+  color: #0f6a42;
+}
+
+.status-pending {
+  background: #fff6d8;
+  color: #8c6400;
+}
+
+.status-failed {
+  background: #ffe0e0;
+  color: #9c1f1f;
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
