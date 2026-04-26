@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AAU Kitchen Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .order-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .order-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-left: 5px solid #ccc;
+      }
+      .order-card.PENDING { border-left-color: #ff9800; }
+      .order-card.PREPARING { border-left-color: #2196f3; }
+      .order-card.READY { border-left-color: #4caf50; }
+      
+      .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .order-id { font-weight: bold; color: #1a237e; }
+      .order-status { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; }
+      
+      .order-items { list-style: none; padding: 0; margin: 15px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 10px 0; }
+      .order-items li { display: flex; justify-content: space-between; margin-bottom: 5px; }
+      
+      .order-actions { display: flex; gap: 10px; }
+      .order-actions button { flex: 1; padding: 8px; font-size: 0.85rem; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <div class="brand">Addis Ababa University</div>
+          <div class="subtitle">Kitchen Dashboard (Live)</div>
+        </div>
+        <nav class="nav-links">
+          <a href="/admin">Admin Home</a>
+          <button id="logoutBtn" class="inline-btn">Logout</button>
+        </nav>
+      </div>
+    </header>
+    <main class="container">
+      <section class="hero">
+        <h1>Active Orders</h1>
+        <p>Real-time tracking of student meals and cafe purchases.</p>
+      </section>
+
+      <div id="kitchenStatus" class="message"></div>
+      
+      <div id="activeOrders" class="order-grid">
+        <!-- Orders will be loaded here -->
+        <p>Loading active orders...</p>
+      </div>
+    </main>
+
+    <script>
+      const token = localStorage.getItem("aau_token");
+      if (!token) window.location.href = "/admin";
+
+      async function updateOrderStatus(orderId, newStatus) {
+        try {
+          const res = await fetch(`/api/admin/orders/${orderId}/status`, {
+            method: "PATCH",
+            headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ status: newStatus })
+          });
+          const json = await res.json();
+          if (json.ok) loadOrders();
+          else alert(json.error);
+        } catch (e) { console.error(e); }
+      }
+
+      async function loadOrders() {
+        try {
+          const res = await fetch("/api/admin/orders/active", {
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          const json = await res.json();
+          if (!json.ok) {
+            document.getElementById("activeOrders").innerHTML = `<p class="error">${json.error}</p>`;
+            return;
+          }
+          
+          const container = document.getElementById("activeOrders");
+          if (json.data.length === 0) {
+            container.innerHTML = "<p>No active orders at the moment.</p>";
+            return;
+          }
+
+          container.innerHTML = json.data.map(order => `
+            <div class="order-card ${order.status}">
+              <div class="order-header">
+                <span class="order-id">#${order.order_id}</span>
+                <span class="order-status">${order.status}</span>
+              </div>
+              <div><strong>${order.first_name} ${order.last_name}</strong></div>
+              <div style="font-size: 0.8rem; color: #666;">${new Date(order.order_time).toLocaleTimeString()}</div>
+              
+              <ul class="order-items">
+                ${order.items.map(item => `<li><span>${item.item_name}</span> <span>x${item.quantity}</span></li>`).join('')}
+              </ul>
+              
+              <div class="order-actions">
+                ${order.status === 'PENDING' ? `<button onclick="updateOrderStatus(${order.order_id}, 'PREPARING')">Start Preparing</button>` : ''}
+                ${order.status === 'PREPARING' ? `<button onclick="updateOrderStatus(${order.order_id}, 'READY')">Mark Ready</button>` : ''}
+                ${order.status === 'READY' ? `<button onclick="updateOrderStatus(${order.order_id}, 'COMPLETED')">Hand Over</button>` : ''}
+                <button class="secondary" onclick="updateOrderStatus(${order.order_id}, 'CANCELLED')">Cancel</button>
+              </div>
+            </div>
+          `).join('');
+        } catch (e) { console.error(e); }
+      }
+
+      document.getElementById("logoutBtn").onclick = () => {
+        localStorage.removeItem("aau_token");
+        window.location.href = "/admin";
+      };
+
+      // Poll for changes every 5 seconds for "real-time" feel without Socket.io setup complexity
+      loadOrders();
+      setInterval(loadOrders, 5000);
+    </script>
+  </body>
+</html>

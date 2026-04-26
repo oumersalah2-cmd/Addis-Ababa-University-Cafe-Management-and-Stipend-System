@@ -43,14 +43,9 @@
             </select>
           </label>
           <label>Bank Account Number <input name="bank_account_number" id="bankAccount" /></label>
-          <label>Dorm Block
-            <select name="dorm_block" required>
-              <option value="A">A</option>
-              <option value="B">B</option>
-            </select>
+          <label class="full">Dormitory (Block - Room)
+            <select name="dorm_id" id="dormSelect" required></select>
           </label>
-          <label>Floor Number <input name="floor_number" type="number" min="0" required /></label>
-          <label>Dorm Number <input name="dorm_number" required /></label>
           <label>Choose Username <input name="username" required /></label>
           <label>Choose Password <input name="password" type="password" required /></label>
           <small class="full">Password must be 8+ chars with uppercase, lowercase, and number.</small>

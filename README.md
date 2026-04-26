@@ -1,70 +1,56 @@
 # AAU Cafe Management and Stipend System
 
-Starter implementation for the College of Technology and Built Environment (5 Kilo).
+Full-stack real-time campus café ordering and stipend management system for Addis Ababa University (5 Kilo).
 
-## What is included
+## Core Features
 
-- PostgreSQL schema with strict constraints in `db/schema.sql`
-- Seed data in `db/seed.sql`
-- Useful admin/report SQL in `db/queries.sql`
-- Minimal Node/Express API in `backend/src/server.js`
-- Browser UI in `backend/public/index.html`
+- **Relational Database**: PostgreSQL with strict constraints (Dormitory, Student, Department, Menu, Orders, Stipends).
+- **Student Portal**: Self-registration, profile management, stipend tracking, and **real-time menu ordering**.
+- **Admin Dashboard**: Student approval, stipend creation, payment confirmation, and **menu management**.
+- **Kitchen Dashboard**: Real-time order tracking (PENDING -> PREPARING -> READY -> COMPLETED).
+- **Security**: JWT authentication, hashed passwords, audit logging, and failed login protection.
 
 ## Setup
 
 1. Create a PostgreSQL database:
    - `aau_cafe`
-2. Run:
+2. Run SQL scripts in order:
    - `db/schema.sql`
    - `db/seed.sql`
 3. In `backend`:
-   - Copy `.env.example` to `.env`
-   - Update DB credentials
+   - Copy `.env.example` to `.env` and update credentials.
    - Run `npm install`
    - Run `npm run dev`
 
-## Main API Endpoints
+## Browser Pages
 
-- `GET /api/health`
-- `POST /api/auth/login`
-- `POST /api/students/register`
-- `GET /api/admin/students/pending`
-- `PATCH /api/admin/students/:studentId/approve`
-- `POST /api/admin/stipends`
-- `PATCH /api/admin/stipends/:transactionId/confirm`
-- `GET /api/admin/audit/recent`
+- **Registration**: `http://localhost:4000/`
+- **Student Portal**: `http://localhost:4000/student`
+- **Admin Dashboard**: `http://localhost:4000/admin`
+- **Kitchen Dashboard**: `http://localhost:4000/kitchen`
 
-## Browser pages
+## Seed Login Credentials (from `seed.sql`)
 
-- Student registration page: `http://localhost:4000/`
-- Student portal page: `http://localhost:4000/student`
-- Admin page: `http://localhost:4000/admin`
+- **Admin**: `admin` / `admin123`
+- **Student**: `abebe1001` / `student123`
 
-Admin UI is separated from student pages so regular users do not see admin tools.
-Both admin and student portals keep login session in browser storage until logout or token expiry.
+## Technical Architecture
 
-## Seed login credentials
+- **Backend**: Node.js, Express, `pg` (PostgreSQL client).
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3.
+- **Real-time**: Simple polling mechanism for live order status.
 
-- Admin username: `admin_main`
-- Admin password: `admin123`
-- Student username: `abel2001`
-- Student password: `student123`
+## Complex Queries
 
-## Registration rules
+The `db/queries.sql` file contains 10 advanced business queries:
+1. Student & Dorm onboarding.
+2. Status transitions (Cafe -> Stipend).
+3. Automated log cleanup.
+4. Active student reports (Multi-join).
+5. Missing payment identification (Left Join).
+6. Department distribution (Right Join).
+7. Data integrity audits (Full Join).
+8. Resource allocation reports (Aggregation).
+9. Student welfare checks (Subquery).
+10. Comprehensive student dossiers.
 
-- Student registration requires a unique `student_id` and unique `username`.
-- Password must be at least 8 characters and include uppercase, lowercase, and number.
-
-## Security and audit additions
-
-- Login endpoint has basic failed-attempt protection (temporary block after repeated failures).
-- Admin actions are logged in `admin_audit_log`:
-  - student approval
-  - stipend creation
-  - stipend payment confirmation
-
-## Next build steps
-
-- Move JWT from localStorage to HTTP-only cookies.
-- Add forgot/reset password flow.
-- Add export for monthly reports (CSV/PDF).

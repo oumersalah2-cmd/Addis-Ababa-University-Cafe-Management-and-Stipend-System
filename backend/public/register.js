@@ -1,16 +1,9 @@
 const deptSelect = document.getElementById("deptSelect");
+const dormSelect = document.getElementById("dormSelect");
 const cafeStatus = document.getElementById("cafeStatus");
 const bankAccount = document.getElementById("bankAccount");
 const studentForm = document.getElementById("studentForm");
 const studentMessage = document.getElementById("studentMessage");
-const fallbackDepartments = [
-  { dept_id: 1, dept_name: "Civil Engineering" },
-  { dept_id: 2, dept_name: "Software Engineering" },
-  { dept_id: 3, dept_name: "Electrical and Computer Engineering" },
-  { dept_id: 4, dept_name: "Mechanical Engineering" },
-  { dept_id: 5, dept_name: "Biomedical Engineering" },
-  { dept_id: 6, dept_name: "Chemical Engineering" },
-];
 
 async function fetchJSON(url, options = {}) {
   const response = await fetch(url, {
@@ -44,19 +37,22 @@ function toggleBankAccountRequirement() {
 async function loadDepartments() {
   try {
     const data = await fetchJSON("/api/departments");
-    const departments = Array.isArray(data.data) && data.data.length ? data.data : fallbackDepartments;
-    deptSelect.innerHTML = departments
+    deptSelect.innerHTML = data.data
       .map((dept) => `<option value="${dept.dept_id}">${dept.dept_name}</option>`)
       .join("");
-    if (!Array.isArray(data.data) || data.data.length === 0) {
-      studentMessage.textContent = "Using default department list. Ask admin to run database seed.";
-    }
   } catch (_error) {
-    deptSelect.innerHTML = fallbackDepartments
-      .map((dept) => `<option value="${dept.dept_id}">${dept.dept_name}</option>`)
+    studentMessage.textContent = "Error loading departments.";
+  }
+}
+
+async function loadDormitories() {
+  try {
+    const data = await fetchJSON("/api/dormitories");
+    dormSelect.innerHTML = data.data
+      .map((dorm) => `<option value="${dorm.dorm_id}">${dorm.block_name} - ${dorm.room_number}</option>`)
       .join("");
-    studentMessage.textContent =
-      "Department service is unavailable now. Using default department list.";
+  } catch (_error) {
+    studentMessage.textContent = "Error loading dormitories.";
   }
 }
 
@@ -66,7 +62,8 @@ studentForm.addEventListener("submit", async (event) => {
   const payload = Object.fromEntries(formData.entries());
   payload.year_of_study = Number(payload.year_of_study);
   payload.dept_id = Number(payload.dept_id);
-  payload.floor_number = Number(payload.floor_number);
+  payload.dorm_id = Number(payload.dorm_id);
+  
   if (payload.cafe_status === "CAFE") {
     payload.bank_account_number = "";
   }
@@ -96,7 +93,8 @@ cafeStatus.addEventListener("change", toggleBankAccountRequirement);
 
 async function boot() {
   toggleBankAccountRequirement();
-  await loadDepartments();
+  await Promise.all([loadDepartments(), loadDormitories()]);
 }
 
 boot();
+

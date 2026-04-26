@@ -38,9 +38,46 @@
       </section>
 
       <section class="card">
+        <h2>Daily Menu & Ordering</h2>
+        <div id="menuContainer" class="menu-grid">
+          <p>Login to view the daily menu and place orders.</p>
+        </div>
+        <div id="cartBox" style="display: none; border-top: 2px dashed #ccc; margin-top: 15px; padding-top: 15px;">
+          <h3>Your Order</h3>
+          <ul id="cartItems"></ul>
+          <div style="font-weight: bold; margin: 10px 0;">Total: <span id="cartTotal">0.00</span> ETB</div>
+          <button id="placeOrderBtn" class="full">Place Order</button>
+          <p id="orderMessage" class="message"></p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Live Order Tracking</h2>
+        <div id="activeOrdersBox">
+          <p>Login to track your active orders.</p>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>My Profile</h2>
         <pre id="profileBox">Login to view your profile.</pre>
       </section>
+
+      <section class="card" id="mealLoggerCard" style="display: none;">
+        <h2>Log My Meal (CAFE Students)</h2>
+        <form id="mealLogForm" class="form-grid">
+          <label>Meal Type
+            <select name="meal_type" required>
+              <option value="BREAKFAST">BREAKFAST</option>
+              <option value="LUNCH">LUNCH</option>
+              <option value="DINNER">DINNER</option>
+            </select>
+          </label>
+          <button class="full" type="submit">Log Meal</button>
+        </form>
+        <p id="mealLogMessage" class="message"></p>
+      </section>
+
 
       <section class="card">
         <h2>Latest Payment Status</h2>

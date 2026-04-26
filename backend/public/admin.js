@@ -10,6 +10,8 @@ const adminLogoutBtn = document.getElementById("adminLogoutBtn");
 const monthlyReportForm = document.getElementById("monthlyReportForm");
 const monthlyReportBox = document.getElementById("monthlyReportBox");
 const auditLogList = document.getElementById("auditLogList");
+const menuForm = document.getElementById("menuForm");
+const menuList = document.getElementById("menuList");
 
 let authToken = localStorage.getItem("admin_token") || "";
 
@@ -32,6 +34,35 @@ async function fetchJSON(url, options = {}) {
     throw new Error(data.error || "Request failed");
   }
   return data;
+}
+
+async function loadMenu() {
+  const data = await fetchJSON("/api/menu");
+  if (data.data.length === 0) {
+    menuList.innerHTML = "<li>No menu items added.</li>";
+    return;
+  }
+  menuList.innerHTML = data.data
+    .map(
+      (item) => `<li style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+        <strong>${item.item_name}</strong> (${item.category}) - ${item.price} ETB
+        <br/><small>${item.description || ""}</small>
+        <br/><button class="inline-btn" style="background: #f44336; margin-top: 5px;" onclick="toggleAvailability(${item.item_id}, ${!item.is_available})">${item.is_available ? 'Disable' : 'Enable'}</button>
+      </li>`
+    )
+    .join("");
+}
+
+async function toggleAvailability(itemId, status) {
+  try {
+    await fetchJSON(`/api/admin/menu/${itemId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_available: status }),
+    });
+    await loadMenu();
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
 async function loadPendingStudents() {
@@ -107,6 +138,7 @@ async function confirmStipend(transactionId) {
 async function refreshAdminData() {
   if (!authToken) return;
   await Promise.all([
+    loadMenu(),
     loadPendingStudents(),
     loadNonCafeApprovedStudents(),
     loadPendingStipends(),
@@ -157,10 +189,28 @@ adminLoginForm.addEventListener("submit", async (event) => {
     }
     authToken = data.data.token;
     localStorage.setItem("admin_token", authToken);
+    localStorage.setItem("aau_token", authToken); // For kitchen
     adminMessage.textContent = `Logged in as ${data.data.user.username}`;
     await refreshAdminData();
   } catch (error) {
     adminMessage.textContent = error.message;
+  }
+});
+
+menuForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new FormData(menuForm);
+  const payload = Object.fromEntries(formData.entries());
+  payload.price = Number(payload.price);
+  try {
+    await fetchJSON("/api/admin/menu", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    menuForm.reset();
+    await loadMenu();
+  } catch (error) {
+    alert(error.message);
   }
 });
 
@@ -198,7 +248,9 @@ refreshAdmin.addEventListener("click", refreshAdminData);
 adminLogoutBtn.addEventListener("click", () => {
   authToken = "";
   localStorage.removeItem("admin_token");
+  localStorage.removeItem("aau_token");
   adminMessage.textContent = "Logged out.";
+  menuList.innerHTML = "<li>Login as admin to load data.</li>";
   pendingStudents.innerHTML = "<li>Login as admin to load data.</li>";
   pendingStipends.innerHTML = "<li>Login as admin to load data.</li>";
   monthlyReportBox.textContent = "Login and choose month to view report.";
@@ -207,6 +259,7 @@ adminLogoutBtn.addEventListener("click", () => {
 
 window.approveStudent = approveStudent;
 window.confirmStipend = confirmStipend;
+window.toggleAvailability = toggleAvailability;
 
 if (authToken) {
   adminMessage.textContent = "Session restored.";
@@ -216,3 +269,4 @@ if (authToken) {
     adminMessage.textContent = "Saved session expired. Please login again.";
   });
 }
+

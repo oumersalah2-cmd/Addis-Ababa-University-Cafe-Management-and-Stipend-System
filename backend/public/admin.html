@@ -17,19 +17,20 @@
           <a href="/">Registration</a>
           <a href="/student">Student Portal</a>
           <a href="/admin">Admin</a>
+          <a href="/kitchen" style="color: #ffc107; font-weight: bold;">Kitchen Dashboard</a>
         </nav>
       </div>
     </header>
     <main class="container">
       <section class="hero">
         <h1>AAU Admin Dashboard</h1>
-        <p>Secure workspace for student approvals, stipend operations, reporting, and audit tracking.</p>
+        <p>Secure workspace for student approvals, stipend operations, reporting, and menu management.</p>
       </section>
 
       <section class="card">
         <h2>Admin Login</h2>
         <form id="adminLoginForm" class="form-grid">
-          <label>Admin Username <input name="username" value="admin_main" required /></label>
+          <label>Admin Username <input name="username" value="admin" required /></label>
           <label>Admin Password <input name="password" type="password" value="admin123" required /></label>
           <button class="full" type="submit">Admin Login</button>
         </form>
@@ -41,6 +42,25 @@
         <div class="admin-controls">
           <button id="refreshAdmin">Refresh Data</button>
         </div>
+
+        <h3>Menu Management</h3>
+        <form id="menuForm" class="form-grid">
+          <label>Item Name <input name="item_name" required /></label>
+          <label>Price <input name="price" type="number" step="0.01" value="0.00" required /></label>
+          <label>Category
+            <select name="category" required>
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snack">Snack</option>
+              <option value="Drink">Drink</option>
+            </select>
+          </label>
+          <label class="full">Description <input name="description" /></label>
+          <button class="full" type="submit">Add Menu Item</button>
+        </form>
+        <ul id="menuList" style="margin-top: 15px;"></ul>
+
         <h3>Pending Students</h3>
         <ul id="pendingStudents"><li>Login as admin to load data.</li></ul>
 
@@ -68,6 +88,7 @@
         <h3>Recent Admin Activity</h3>
         <ul id="auditLogList"><li>Login as admin to load activity log.</li></ul>
       </section>
+
     </main>
 
     <script src="/admin.js"></script>
