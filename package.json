@@ -2,10 +2,10 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "AAU Cafe and Stipend backend API",
-  "main": "backend/src/server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node backend/src/server.js",
-    "dev": "node --watch backend/src/server.js",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
     "test": "echo \"No tests configured yet\""
   },
   "keywords": [],
