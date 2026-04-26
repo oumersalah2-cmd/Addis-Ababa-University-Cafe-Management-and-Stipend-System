@@ -844,6 +844,10 @@ app.get("/kitchen", (_req, res) => {
   return res.sendFile(path.join(__dirname, "..", "public", "kitchen.html"));
 });
 
+app.get("*", (_req, res) => {
+  return res.sendFile(path.join(__dirname, "..", "public", "index.html"));
+});
+
 app.listen(port, () => {
   console.log(`AAU backend listening on http://localhost:${port}`);
 });
