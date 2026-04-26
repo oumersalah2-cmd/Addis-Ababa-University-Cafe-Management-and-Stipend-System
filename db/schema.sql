@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS cafe_order;
 DROP TABLE IF EXISTS menu_item;
 DROP TABLE IF EXISTS stipend_transaction;
 DROP TABLE IF EXISTS meal_log;
+DROP TABLE IF EXISTS student_feedback;
 DROP TABLE IF EXISTS admin_audit_log;
 DROP TABLE IF EXISTS app_user;
 DROP TABLE IF EXISTS student;
@@ -19,12 +20,16 @@ DROP TYPE IF EXISTS user_role_enum;
 DROP TYPE IF EXISTS cafe_status_enum;
 DROP TYPE IF EXISTS meal_type_enum;
 DROP TYPE IF EXISTS stipend_status_enum;
+DROP TYPE IF EXISTS feedback_category_enum;
+DROP TYPE IF EXISTS feedback_status_enum;
 
 -- Custom Types
 CREATE TYPE user_role_enum AS ENUM ('STUDENT', 'ADMIN');
 CREATE TYPE cafe_status_enum AS ENUM ('CAFE', 'NON_CAFE');
 CREATE TYPE meal_type_enum AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER');
 CREATE TYPE stipend_status_enum AS ENUM ('PENDING', 'PAID', 'FAILED');
+CREATE TYPE feedback_category_enum AS ENUM ('FOOD', 'PAYMENT');
+CREATE TYPE feedback_status_enum AS ENUM ('OPEN', 'IN_REVIEW', 'RESOLVED');
 
 -- 2. Department Table
 CREATE TABLE department (
@@ -35,10 +40,9 @@ CREATE TABLE department (
 -- 3. Dormitory Table
 CREATE TABLE dormitory (
     dorm_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    block_name VARCHAR(50) NOT NULL,
-    floor_number INT NOT NULL CHECK (floor_number >= 0),
-    room_number VARCHAR(20) NOT NULL,
-    UNIQUE(block_name, floor_number, room_number)
+    block_name CHAR(1) NOT NULL CHECK (block_name IN ('A', 'B')),
+    dorm_number VARCHAR(30) NOT NULL,
+    UNIQUE(block_name, dorm_number)
 );
 
 -- 1. Student Table
@@ -51,6 +55,7 @@ CREATE TABLE student (
     bank_account_number VARCHAR(30),
     dept_id INT NOT NULL REFERENCES department(dept_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     dorm_id INT REFERENCES dormitory(dorm_id) ON UPDATE CASCADE ON DELETE SET NULL,
+    meal_card_number VARCHAR(20) UNIQUE,
     registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_approved BOOLEAN NOT NULL DEFAULT FALSE,
     -- Constraint: Students cannot have both Cafe and Stipend status at the same time in theory,
@@ -60,6 +65,11 @@ CREATE TABLE student (
         (cafe_status = 'NON_CAFE' AND bank_account_number IS NOT NULL)
         OR
         (cafe_status = 'CAFE' AND bank_account_number IS NULL)
+    ),
+    CHECK (
+        (cafe_status = 'CAFE' AND meal_card_number IS NOT NULL)
+        OR
+        (cafe_status = 'NON_CAFE' AND meal_card_number IS NULL)
     )
 );
 
@@ -99,12 +109,25 @@ CREATE TABLE meal_log (
 -- Business Rule: A student can only log a specific meal once per day
 CREATE UNIQUE INDEX uq_meal_per_student_per_day ON meal_log (student_id, (date_time::date), meal_type);
 
+-- Student feedback / complaints (food or payment) with optional photo
+CREATE TABLE student_feedback (
+    feedback_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id VARCHAR(20) NOT NULL REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    category feedback_category_enum NOT NULL,
+    message TEXT NOT NULL,
+    photo_path TEXT,
+    status feedback_status_enum NOT NULL DEFAULT 'OPEN',
+    admin_note TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 5. Stipend_Transaction Table
 CREATE TABLE stipend_transaction (
     transaction_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     student_id VARCHAR(20) NOT NULL REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     stipend_month DATE NOT NULL, -- Stored as first day of month
-    amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+    amount NUMERIC(12, 2) NOT NULL DEFAULT 3000.00 CHECK (amount = 3000.00),
     status stipend_status_enum NOT NULL DEFAULT 'PENDING',
     processed_at TIMESTAMP,
     confirmed_at TIMESTAMP,

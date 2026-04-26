@@ -1,5 +1,4 @@
 const deptSelect = document.getElementById("deptSelect");
-const dormSelect = document.getElementById("dormSelect");
 const cafeStatus = document.getElementById("cafeStatus");
 const bankAccount = document.getElementById("bankAccount");
 const studentForm = document.getElementById("studentForm");
@@ -45,24 +44,12 @@ async function loadDepartments() {
   }
 }
 
-async function loadDormitories() {
-  try {
-    const data = await fetchJSON("/api/dormitories");
-    dormSelect.innerHTML = data.data
-      .map((dorm) => `<option value="${dorm.dorm_id}">${dorm.block_name} - ${dorm.room_number}</option>`)
-      .join("");
-  } catch (_error) {
-    studentMessage.textContent = "Error loading dormitories.";
-  }
-}
-
 studentForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(studentForm);
   const payload = Object.fromEntries(formData.entries());
   payload.year_of_study = Number(payload.year_of_study);
   payload.dept_id = Number(payload.dept_id);
-  payload.dorm_id = Number(payload.dorm_id);
   
   if (payload.cafe_status === "CAFE") {
     payload.bank_account_number = "";
@@ -93,7 +80,7 @@ cafeStatus.addEventListener("change", toggleBankAccountRequirement);
 
 async function boot() {
   toggleBankAccountRequirement();
-  await Promise.all([loadDepartments(), loadDormitories()]);
+  await loadDepartments();
 }
 
 boot();

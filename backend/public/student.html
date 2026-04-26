@@ -21,80 +21,58 @@
       </div>
     </header>
     <main class="container">
-      <section class="hero">
-        <h1>AAU Student Portal</h1>
-        <p>View your profile, stipend history, and recent meal logs after login.</p>
-      </section>
-
-      <section class="card">
-        <h2>Student Login</h2>
-        <form id="studentLoginForm" class="form-grid">
-          <label>Username <input name="username" required /></label>
-          <label>Password <input name="password" type="password" required /></label>
+      <section class="card auth-card">
+        <div class="auth-header">
+          <h2 style="margin: 0;">Student Login</h2>
+          <button id="studentLogoutBtn" class="inline-btn" type="button">Logout</button>
+        </div>
+        <form id="studentLoginForm" class="form-grid" style="margin-top: 15px;">
+          <label>Username <input name="username" autocomplete="username" required /></label>
+          <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
           <button class="full" type="submit">Login</button>
         </form>
-        <button id="studentLogoutBtn" class="inline-btn" type="button">Logout</button>
+        <p style="margin: 12px 0 0; color: rgba(255,255,255,0.75);">
+          Login to complain and see your profile.
+        </p>
         <p id="studentLoginMessage" class="message"></p>
       </section>
 
-      <section class="card">
-        <h2>Daily Menu & Ordering</h2>
-        <div id="menuContainer" class="menu-grid">
-          <p>Login to view the daily menu and place orders.</p>
-        </div>
-        <div id="cartBox" style="display: none; border-top: 2px dashed #ccc; margin-top: 15px; padding-top: 15px;">
-          <h3>Your Order</h3>
-          <ul id="cartItems"></ul>
-          <div style="font-weight: bold; margin: 10px 0;">Total: <span id="cartTotal">0.00</span> ETB</div>
-          <button id="placeOrderBtn" class="full">Place Order</button>
-          <p id="orderMessage" class="message"></p>
-        </div>
-      </section>
+      <div id="portalContent" style="display:none;">
+        <section class="card">
+          <h2>My Profile</h2>
+          <pre id="profileBox">Loading...</pre>
+        </section>
 
-      <section class="card">
-        <h2>Live Order Tracking</h2>
-        <div id="activeOrdersBox">
-          <p>Login to track your active orders.</p>
-        </div>
-      </section>
+        <section class="card" id="nonCafePaymentsCard" style="display:none;">
+          <h2>Monthly Cost Sharing (Sep → Jun)</h2>
+          <div id="paymentTracker"><p>Loading payment tracker...</p></div>
+        </section>
 
-      <section class="card">
-        <h2>My Profile</h2>
-        <pre id="profileBox">Login to view your profile.</pre>
-      </section>
-
-      <section class="card" id="mealLoggerCard" style="display: none;">
-        <h2>Log My Meal (CAFE Students)</h2>
-        <form id="mealLogForm" class="form-grid">
-          <label>Meal Type
-            <select name="meal_type" required>
-              <option value="BREAKFAST">BREAKFAST</option>
-              <option value="LUNCH">LUNCH</option>
-              <option value="DINNER">DINNER</option>
-            </select>
-          </label>
-          <button class="full" type="submit">Log Meal</button>
-        </form>
-        <p id="mealLogMessage" class="message"></p>
-      </section>
-
-
-      <section class="card">
-        <h2>Latest Payment Status</h2>
-        <div id="latestPaymentBox" class="payment-summary">
-          Login to view your latest payment update.
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>My Stipend History</h2>
-        <ul id="stipendHistory"><li>Login to view stipend records.</li></ul>
-      </section>
-
-      <section class="card">
-        <h2>My Recent Meal Logs</h2>
-        <ul id="mealHistory"><li>Login to view meal logs.</li></ul>
-      </section>
+        <section class="card">
+          <h2>Feedback / Complaint</h2>
+          <p style="color: rgba(255,255,255,0.75); margin-top: -10px;">
+            Cafe students: report food issues. Non-cafe students: report payment issues.
+          </p>
+          <form id="feedbackForm" class="form-grid">
+            <label>Category
+              <select name="category" id="feedbackCategory" required>
+                <option value="FOOD">FOOD</option>
+                <option value="PAYMENT">PAYMENT</option>
+              </select>
+            </label>
+            <label>Photo (optional)
+              <input name="photo" type="file" accept="image/*" />
+            </label>
+            <label class="full">Message
+              <input name="message" placeholder="Write your concern..." required />
+            </label>
+            <button class="full" type="submit">Submit</button>
+          </form>
+          <p id="feedbackMessage" class="message"></p>
+          <h3 style="margin-top: 25px;">My Recent Feedback</h3>
+          <ul id="feedbackList"><li>Loading...</li></ul>
+        </section>
+      </div>
     </main>
 
     <script src="/student.js"></script>

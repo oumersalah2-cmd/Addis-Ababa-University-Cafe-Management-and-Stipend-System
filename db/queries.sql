@@ -2,8 +2,14 @@
 
 -- 1. INSERT: Register a new student and assign them to a dormitory
 -- Problem: Efficiently onboarding new students with their living arrangements.
-INSERT INTO student (student_id, first_name, last_name, year_of_study, cafe_status, bank_account_number, dept_id, dorm_id)
-VALUES ('UGR/5555/18', 'Solomon', 'Tekle', 1, 'CAFE', NULL, 1, 1);
+INSERT INTO dormitory (block_name, dorm_number)
+VALUES ('A', 'A-999')
+ON CONFLICT (block_name, dorm_number) DO NOTHING;
+
+INSERT INTO student (student_id, first_name, last_name, year_of_study, cafe_status, bank_account_number, dept_id, dorm_id, meal_card_number)
+VALUES ('UGR/5555/18', 'Solomon', 'Tekle', 1, 'CAFE', NULL, 1,
+        (SELECT dorm_id FROM dormitory WHERE block_name = 'A' AND dorm_number = 'A-999'),
+        'MC-555555');
 
 -- 2. UPDATE: Change student status from CAFE to NON_CAFE
 -- Problem: A student wants to switch to receiving money instead of eating at the cafe.
@@ -20,7 +26,7 @@ WHERE date_time < CURRENT_TIMESTAMP - INTERVAL '1 year';
 
 -- 4. INNER JOIN: List all CAFE students with their Department and Dorm details
 -- Problem: Generating a daily list for the kitchen staff to verify eligible students.
-SELECT s.student_id, s.first_name, s.last_name, d.dept_name, dr.block_name, dr.room_number
+SELECT s.student_id, s.first_name, s.last_name, s.meal_card_number, d.dept_name, dr.block_name, dr.dorm_number
 FROM student s
 INNER JOIN department d ON s.dept_id = d.dept_id
 INNER JOIN dormitory dr ON s.dorm_id = dr.dorm_id
@@ -74,11 +80,11 @@ SELECT
     s.student_id, 
     s.first_name || ' ' || s.last_name as full_name,
     d.dept_name,
-    dr.block_name || ' Room ' || dr.room_number as dorm_info,
+    dr.block_name || '-' || dr.dorm_number as dorm_info,
     (SELECT MAX(date_time) FROM meal_log WHERE student_id = s.student_id) as last_meal_time,
     COALESCE(SUM(st.amount), 0) as total_stipend_paid
 FROM student s
 JOIN department d ON s.dept_id = d.dept_id
 JOIN dormitory dr ON s.dorm_id = dr.dorm_id
 LEFT JOIN stipend_transaction st ON s.student_id = st.student_id AND st.status = 'PAID'
-GROUP BY s.student_id, s.first_name, s.last_name, d.dept_name, dr.block_name, dr.room_number;
+GROUP BY s.student_id, s.first_name, s.last_name, d.dept_name, dr.block_name, dr.dorm_number;

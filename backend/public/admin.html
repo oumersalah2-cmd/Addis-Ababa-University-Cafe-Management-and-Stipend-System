@@ -27,14 +27,16 @@
         <p>Secure workspace for student approvals, stipend operations, reporting, and menu management.</p>
       </section>
 
-      <section class="card">
-        <h2>Admin Login</h2>
-        <form id="adminLoginForm" class="form-grid">
+      <section class="card auth-card">
+        <div class="auth-header">
+          <h2 style="margin: 0;">Admin Login</h2>
+          <button id="adminLogoutBtn" class="inline-btn" type="button">Logout</button>
+        </div>
+        <form id="adminLoginForm" class="form-grid" style="margin-top: 15px;">
           <label>Admin Username <input name="username" value="admin" required /></label>
           <label>Admin Password <input name="password" type="password" value="admin123" required /></label>
           <button class="full" type="submit">Admin Login</button>
         </form>
-        <button id="adminLogoutBtn" class="inline-btn" type="button">Logout</button>
         <p id="adminMessage" class="message"></p>
       </section>
 
@@ -64,14 +66,14 @@
         <h3>Pending Students</h3>
         <ul id="pendingStudents"><li>Login as admin to load data.</li></ul>
 
-        <h3>Create Stipend</h3>
+        <h3>Create Monthly Cost Sharing (NON_CAFE)</h3>
         <form id="stipendForm" class="form-grid">
           <label>Student
             <select name="student_id" id="nonCafeStudents" required></select>
           </label>
           <label>Month (YYYY-MM-01) <input name="stipend_month" type="date" required /></label>
-          <label>Amount <input name="amount" type="number" min="1" step="0.01" value="1800.00" required /></label>
-          <button class="full" type="submit">Create Pending Payment</button>
+          <label>Amount (fixed) <input name="amount_fixed" value="3000" disabled /></label>
+          <button class="full" type="submit">Create Pending Monthly Payment</button>
         </form>
         <p id="stipendMessage" class="message"></p>
 
@@ -87,6 +89,12 @@
 
         <h3>Recent Admin Activity</h3>
         <ul id="auditLogList"><li>Login as admin to load activity log.</li></ul>
+
+        <h3>Student Feedback / Complaints</h3>
+        <p style="color: rgba(255,255,255,0.75); margin-top: -10px;">
+          Review FOOD concerns (CAFE) and PAYMENT concerns (NON_CAFE). You can add a note and resolve them.
+        </p>
+        <ul id="feedbackAdminList"><li>Login as admin to load feedback.</li></ul>
       </section>
 
     </main>

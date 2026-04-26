@@ -211,6 +211,34 @@ button.secondary:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.auth-card {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.auth-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inline-btn {
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.inline-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
 ul {
   list-style: none;
   padding: 0;

@@ -12,6 +12,7 @@ const monthlyReportBox = document.getElementById("monthlyReportBox");
 const auditLogList = document.getElementById("auditLogList");
 const menuForm = document.getElementById("menuForm");
 const menuList = document.getElementById("menuList");
+const feedbackAdminList = document.getElementById("feedbackAdminList");
 
 let authToken = localStorage.getItem("admin_token") || "";
 
@@ -143,6 +144,7 @@ async function refreshAdminData() {
     loadNonCafeApprovedStudents(),
     loadPendingStipends(),
     loadAuditLog(),
+    loadFeedbackAdmin(),
   ]);
 }
 
@@ -171,6 +173,59 @@ async function loadAuditLog() {
       </li>`
     )
     .join("");
+}
+
+async function loadFeedbackAdmin() {
+  if (!feedbackAdminList) return;
+  const data = await fetchJSON("/api/admin/feedback/recent");
+  if (!data.data.length) {
+    feedbackAdminList.innerHTML = "<li>No feedback submitted yet.</li>";
+    return;
+  }
+  feedbackAdminList.innerHTML = data.data
+    .map((f) => {
+      const photo = f.photo_path ? `<a href="${f.photo_path}" target="_blank">photo</a>` : "no photo";
+      return `<li>
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+          <strong>${f.category}</strong>
+          <span class="status-badge ${f.status === "RESOLVED" ? "status-paid" : f.status === "IN_REVIEW" ? "status-pending" : "status-failed"}">${f.status}</span>
+        </div>
+        <div style="margin-top:6px;color:rgba(255,255,255,0.8);">
+          ${f.student_id} - ${f.first_name} ${f.last_name} (${f.cafe_status})
+        </div>
+        <div style="margin-top:10px;">${f.message}</div>
+        <div style="margin-top:8px;">Attachment: ${photo}</div>
+        <div style="margin-top:8px;color:rgba(255,255,255,0.75);">Admin note: ${f.admin_note || "-"}</div>
+        <div class="form-grid" style="margin-top:12px;">
+          <label>Status
+            <select id="fb_status_${f.feedback_id}">
+              <option value="OPEN" ${f.status === "OPEN" ? "selected" : ""}>OPEN</option>
+              <option value="IN_REVIEW" ${f.status === "IN_REVIEW" ? "selected" : ""}>IN_REVIEW</option>
+              <option value="RESOLVED" ${f.status === "RESOLVED" ? "selected" : ""}>RESOLVED</option>
+            </select>
+          </label>
+          <label>Note
+            <input id="fb_note_${f.feedback_id}" value="${(f.admin_note || "").replace(/"/g, "&quot;")}" />
+          </label>
+          <button class="full" type="button" onclick="updateFeedback(${f.feedback_id})">Save</button>
+        </div>
+      </li>`;
+    })
+    .join("");
+}
+
+async function updateFeedback(feedbackId) {
+  try {
+    const status = document.getElementById(`fb_status_${feedbackId}`)?.value;
+    const admin_note = document.getElementById(`fb_note_${feedbackId}`)?.value || "";
+    await fetchJSON(`/api/admin/feedback/${feedbackId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, admin_note }),
+    });
+    await loadFeedbackAdmin();
+  } catch (e) {
+    alert(e.message);
+  }
 }
 
 adminLoginForm.addEventListener("submit", async (event) => {
@@ -229,7 +284,6 @@ stipendForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(stipendForm);
   const payload = Object.fromEntries(formData.entries());
-  payload.amount = Number(payload.amount);
 
   try {
     await fetchJSON("/api/admin/stipends", {
@@ -260,6 +314,7 @@ adminLogoutBtn.addEventListener("click", () => {
 window.approveStudent = approveStudent;
 window.confirmStipend = confirmStipend;
 window.toggleAvailability = toggleAvailability;
+window.updateFeedback = updateFeedback;
 
 if (authToken) {
   adminMessage.textContent = "Session restored.";

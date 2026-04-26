@@ -1,44 +1,40 @@
 -- AAU Cafe Management and Stipend System Mock Data
 -- Exactly 10 records per core table
 
--- 1. Departments (10 records)
+-- 1. Departments (6 records)
 INSERT INTO department (dept_name) VALUES
 ('Software Engineering'),
 ('Civil Engineering'),
-('Electrical Engineering'),
-('Mechanical Engineering'),
 ('Chemical Engineering'),
 ('Biomedical Engineering'),
-('Computer Science'),
-('Information Systems'),
-('Architecture'),
-('Water Resources Engineering');
+('Electrical and Computer Engineering'),
+('Mechanical Engineering');
 
--- 2. Dormitories (10 records)
-INSERT INTO dormitory (block_name, floor_number, room_number) VALUES
-('Kilimanjaro', 1, 'K-101'),
-('Kilimanjaro', 2, 'K-205'),
-('Abay', 1, 'A-110'),
-('Abay', 3, 'A-312'),
-('Tana', 0, 'T-001'),
-('Tana', 2, 'T-214'),
-('Semien', 1, 'S-105'),
-('Semien', 4, 'S-401'),
-('Bale', 2, 'B-202'),
-('Bale', 3, 'B-303');
+-- 2. Dormitories (only Block A and Block B; students type dorm number)
+INSERT INTO dormitory (block_name, dorm_number) VALUES
+('A', 'A-101'),
+('A', 'A-102'),
+('A', 'A-201'),
+('A', 'A-202'),
+('B', 'B-101'),
+('B', 'B-102'),
+('B', 'B-201'),
+('B', 'B-202'),
+('B', 'B-301'),
+('B', 'B-302');
 
 -- 3. Students (10 records: 5 CAFE, 5 NON_CAFE)
-INSERT INTO student (student_id, first_name, last_name, year_of_study, cafe_status, bank_account_number, dept_id, dorm_id, is_approved) VALUES
-('UGR/1001/18', 'Abebe', 'Bikila', 3, 'CAFE', NULL, 1, 1, TRUE),
-('UGR/1002/18', 'Derartu', 'Tulu', 2, 'NON_CAFE', '1000123456789', 2, 2, TRUE),
-('UGR/1003/18', 'Haile', 'Gebrselassie', 4, 'CAFE', NULL, 3, 3, TRUE),
-('UGR/1004/18', 'Tirunesh', 'Dibaba', 1, 'NON_CAFE', '1000987654321', 4, 4, TRUE),
-('UGR/1005/18', 'Kenenisa', 'Bekele', 5, 'CAFE', NULL, 5, 5, TRUE),
-('UGR/1006/18', 'Meseret', 'Defar', 3, 'NON_CAFE', '1000554433221', 6, 6, TRUE),
-('UGR/1007/18', 'Sileshi', 'Sihine', 2, 'CAFE', NULL, 7, 7, FALSE),
-('UGR/1008/18', 'Genzebe', 'Dibaba', 1, 'NON_CAFE', '1000112233445', 8, 8, TRUE),
-('UGR/1009/18', 'Lamecha', 'Girma', 4, 'CAFE', NULL, 9, 9, TRUE),
-('UGR/1010/18', 'Letesenbet', 'Gidey', 2, 'NON_CAFE', '1000998877665', 10, 10, TRUE);
+INSERT INTO student (student_id, first_name, last_name, year_of_study, cafe_status, bank_account_number, dept_id, dorm_id, meal_card_number, is_approved) VALUES
+('UGR/1001/18', 'Abebe', 'Bikila', 3, 'CAFE', NULL, 1, 1, 'MC-10001', TRUE),
+('UGR/1002/18', 'Derartu', 'Tulu', 2, 'NON_CAFE', '1000123456789', 2, 2, NULL, TRUE),
+('UGR/1003/18', 'Haile', 'Gebrselassie', 4, 'CAFE', NULL, 5, 3, 'MC-10002', TRUE),
+('UGR/1004/18', 'Tirunesh', 'Dibaba', 1, 'NON_CAFE', '1000987654321', 6, 4, NULL, TRUE),
+('UGR/1005/18', 'Kenenisa', 'Bekele', 5, 'CAFE', NULL, 3, 5, 'MC-10003', TRUE),
+('UGR/1006/18', 'Meseret', 'Defar', 3, 'NON_CAFE', '1000554433221', 4, 6, NULL, TRUE),
+('UGR/1007/18', 'Sileshi', 'Sihine', 2, 'CAFE', NULL, 2, 7, 'MC-10004', FALSE),
+('UGR/1008/18', 'Genzebe', 'Dibaba', 1, 'NON_CAFE', '1000112233445', 1, 8, NULL, TRUE),
+('UGR/1009/18', 'Lamecha', 'Girma', 4, 'CAFE', NULL, 5, 9, 'MC-10005', TRUE),
+('UGR/1010/18', 'Letesenbet', 'Gidey', 2, 'NON_CAFE', '1000998877665', 6, 10, NULL, TRUE);
 
 -- App Users (For Auth - linking to some students)
 INSERT INTO app_user (username, password_hash, role, student_id) VALUES
@@ -59,18 +55,18 @@ INSERT INTO meal_log (student_id, date_time, meal_type) VALUES
 ('UGR/1009/18', '2026-04-23 12:30:00', 'LUNCH'),
 ('UGR/1001/18', '2026-04-22 07:45:00', 'BREAKFAST');
 
--- 5. Stipend Transactions (10 records)
+-- 5. Stipend Transactions (10 records) - cost sharing is 3000 monthly
 INSERT INTO stipend_transaction (student_id, stipend_month, amount, status) VALUES
-('UGR/1002/18', '2026-04-01', 1800.00, 'PAID'),
-('UGR/1004/18', '2026-04-01', 1800.00, 'PAID'),
-('UGR/1006/18', '2026-04-01', 1800.00, 'PENDING'),
-('UGR/1008/18', '2026-04-01', 1800.00, 'PENDING'),
-('UGR/1010/18', '2026-04-01', 1800.00, 'FAILED'),
-('UGR/1002/18', '2026-03-01', 1800.00, 'PAID'),
-('UGR/1004/18', '2026-03-01', 1800.00, 'PAID'),
-('UGR/1006/18', '2026-03-01', 1800.00, 'PAID'),
-('UGR/1008/18', '2026-03-01', 1800.00, 'PAID'),
-('UGR/1010/18', '2026-03-01', 1800.00, 'PAID');
+('UGR/1002/18', '2026-04-01', 3000.00, 'PAID'),
+('UGR/1004/18', '2026-04-01', 3000.00, 'PAID'),
+('UGR/1006/18', '2026-04-01', 3000.00, 'PENDING'),
+('UGR/1008/18', '2026-04-01', 3000.00, 'PENDING'),
+('UGR/1010/18', '2026-04-01', 3000.00, 'FAILED'),
+('UGR/1002/18', '2026-03-01', 3000.00, 'PAID'),
+('UGR/1004/18', '2026-03-01', 3000.00, 'PAID'),
+('UGR/1006/18', '2026-03-01', 3000.00, 'PAID'),
+('UGR/1008/18', '2026-03-01', 3000.00, 'PAID'),
+('UGR/1010/18', '2026-03-01', 3000.00, 'PAID');
 
 -- 6. Menu Items (10 records)
 INSERT INTO menu_item (item_name, description, price, category) VALUES

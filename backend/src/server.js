@@ -1,8 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
 const { pool } = require("./db");
 
 const app = express();
@@ -14,14 +16,52 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
+const uploadsDir = path.join(__dirname, "..", "public", "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+app.use("/uploads", express.static(uploadsDir));
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const safeExt = path.extname(file.originalname || "").slice(0, 10) || ".bin";
+      cb(null, `${Date.now()}-${Math.random().toString(16).slice(2)}${safeExt}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
 async function getStudentSnapshot(studentId) {
   const result = await pool.query(
-    `SELECT student_id, cafe_status, is_approved
+    `SELECT student_id, cafe_status, is_approved, meal_card_number
      FROM student
      WHERE student_id = $1`,
     [studentId]
   );
   return result.rows[0] || null;
+}
+
+async function findOrCreateDormitory(client, block_name, dorm_number) {
+  const block = String(block_name || "").trim().toUpperCase();
+  const dorm = String(dorm_number || "").trim().toUpperCase();
+  if (!["A", "B"].includes(block)) throw new Error("Dorm block must be A or B");
+  if (!dorm) return null;
+
+  const existing = await client.query(
+    `SELECT dorm_id FROM dormitory WHERE block_name = $1 AND dorm_number = $2`,
+    [block, dorm]
+  );
+  if (existing.rowCount) return existing.rows[0].dorm_id;
+
+  const inserted = await client.query(
+    `INSERT INTO dormitory (block_name, dorm_number) VALUES ($1, $2) RETURNING dorm_id`,
+    [block, dorm]
+  );
+  return inserted.rows[0].dorm_id;
+}
+
+function generateMealCardNumber() {
+  return `MC-${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
 function authenticate(req, res, next) {
@@ -126,9 +166,9 @@ app.get("/api/departments", async (_req, res) => {
 app.get("/api/dormitories", async (_req, res) => {
   try {
     const result = await pool.query(
-      `SELECT dorm_id, block_name, floor_number, room_number
+      `SELECT dorm_id, block_name, dorm_number
        FROM dormitory
-       ORDER BY block_name ASC, floor_number ASC, room_number ASC`
+       ORDER BY block_name ASC, dorm_number ASC`
     );
     return res.json({ ok: true, data: result.rows });
   } catch (error) {
@@ -203,7 +243,8 @@ app.post("/api/students/register", async (req, res) => {
     dept_id,
     cafe_status,
     bank_account_number,
-    dorm_id,
+    dorm_block,
+    dorm_number,
     username,
     password,
   } = req.body;
@@ -222,24 +263,42 @@ app.post("/api/students/register", async (req, res) => {
   try {
     await client.query("BEGIN");
 
+    const resolvedDormId = await findOrCreateDormitory(client, dorm_block, dorm_number);
+    const normalizedCafeStatus = String(cafe_status || "").toUpperCase();
+
+    let mealCardNumber = null;
+    if (normalizedCafeStatus === "CAFE") {
+      // retry a few times in case of rare collisions
+      for (let i = 0; i < 5; i += 1) {
+        const candidate = generateMealCardNumber();
+        const exists = await client.query(`SELECT 1 FROM student WHERE meal_card_number = $1`, [candidate]);
+        if (exists.rowCount === 0) {
+          mealCardNumber = candidate;
+          break;
+        }
+      }
+      if (!mealCardNumber) throw new Error("Could not generate meal card number. Please try again.");
+    }
+
     const values = [
       student_id,
       first_name,
       last_name,
       year_of_study,
       dept_id,
-      cafe_status,
+      normalizedCafeStatus,
       bank_account_number || null,
-      dorm_id,
+      resolvedDormId,
+      mealCardNumber,
     ];
 
     const studentResult = await client.query(
       `INSERT INTO student (
         student_id, first_name, last_name, year_of_study, dept_id,
-        cafe_status, bank_account_number, dorm_id
+        cafe_status, bank_account_number, dorm_id, meal_card_number
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-      RETURNING student_id, first_name, last_name, cafe_status, is_approved, registered_at`,
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      RETURNING student_id, first_name, last_name, cafe_status, meal_card_number, is_approved, registered_at`,
       values
     );
 
@@ -268,7 +327,7 @@ app.get("/api/students/me", authenticate, requireStudent, async (req, res) => {
   try {
     const profileResult = await pool.query(
       `SELECT s.student_id, s.first_name, s.last_name, s.year_of_study, s.cafe_status,
-              s.bank_account_number, dr.block_name, dr.floor_number, dr.room_number,
+              s.bank_account_number, s.meal_card_number, dr.block_name, dr.dorm_number,
               s.is_approved, d.dept_name
        FROM student s
        INNER JOIN department d ON d.dept_id = s.dept_id
@@ -371,7 +430,7 @@ app.patch("/api/admin/students/:studentId/approve", authenticate, requireAdmin, 
 });
 
 app.post("/api/admin/stipends", authenticate, requireAdmin, async (req, res) => {
-  const { student_id, stipend_month, amount } = req.body;
+  const { student_id, stipend_month } = req.body;
   try {
     const student = await getStudentSnapshot(student_id);
     if (!student) {
@@ -386,9 +445,9 @@ app.post("/api/admin/stipends", authenticate, requireAdmin, async (req, res) => 
 
     const result = await pool.query(
       `INSERT INTO stipend_transaction (student_id, stipend_month, amount, status)
-       VALUES ($1, $2, $3, 'PENDING')
+       VALUES ($1, $2, 3000.00, 'PENDING')
        RETURNING transaction_id, student_id, stipend_month, amount, status`,
-      [student_id, stipend_month, amount]
+      [student_id, stipend_month]
     );
     await pool.query(
       `INSERT INTO admin_audit_log (admin_user_id, action_type, target_student_id, target_transaction_id, details)
@@ -567,6 +626,10 @@ app.post("/api/orders", authenticate, requireStudent, async (req, res) => {
       await client.query("ROLLBACK");
       return res.status(400).json({ ok: false, error: "Only CAFE students can place cafe-meal orders." });
     }
+    if (!is_cafe_meal && student.cafe_status === "CAFE") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "CAFE students cannot place cost-sharing (paid) orders." });
+    }
     
     // Create Order
     const orderResult = await client.query(
@@ -640,6 +703,90 @@ app.patch("/api/admin/orders/:orderId/status", authenticate, requireAdmin, async
       [status, req.params.orderId]
     );
     if (result.rowCount === 0) return res.status(404).json({ ok: false, error: "Order not found" });
+    return res.json({ ok: true, data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// --- Student feedback / complaints ---
+app.post("/api/feedback", authenticate, requireStudent, upload.single("photo"), async (req, res) => {
+  const category = String(req.body.category || "").toUpperCase();
+  const message = String(req.body.message || "").trim();
+  if (!["FOOD", "PAYMENT"].includes(category)) {
+    return res.status(400).json({ ok: false, error: "category must be FOOD or PAYMENT" });
+  }
+  if (!message) {
+    return res.status(400).json({ ok: false, error: "message is required" });
+  }
+
+  try {
+    const student = await getStudentSnapshot(req.user.student_id);
+    if (!student) return res.status(404).json({ ok: false, error: "Student profile not found" });
+    if (!student.is_approved) return res.status(403).json({ ok: false, error: "Your account is not approved yet." });
+
+    const photo_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const result = await pool.query(
+      `INSERT INTO student_feedback (student_id, category, message, photo_path)
+       VALUES ($1, $2, $3, $4)
+       RETURNING feedback_id, category, message, photo_path, status, created_at`,
+      [req.user.student_id, category, message, photo_path]
+    );
+    return res.status(201).json({ ok: true, data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+app.get("/api/feedback/me", authenticate, requireStudent, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT feedback_id, category, message, photo_path, status, admin_note, created_at, updated_at
+       FROM student_feedback
+       WHERE student_id = $1
+       ORDER BY created_at DESC
+       LIMIT 30`,
+      [req.user.student_id]
+    );
+    return res.json({ ok: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+app.get("/api/admin/feedback/recent", authenticate, requireAdmin, async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT f.feedback_id, f.category, f.message, f.photo_path, f.status, f.admin_note, f.created_at,
+              s.student_id, s.first_name, s.last_name, s.cafe_status
+       FROM student_feedback f
+       INNER JOIN student s ON s.student_id = f.student_id
+       ORDER BY f.created_at DESC
+       LIMIT 50`
+    );
+    return res.json({ ok: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+app.patch("/api/admin/feedback/:feedbackId", authenticate, requireAdmin, async (req, res) => {
+  const { status, admin_note } = req.body;
+  const nextStatus = status ? String(status).toUpperCase() : null;
+  if (nextStatus && !["OPEN", "IN_REVIEW", "RESOLVED"].includes(nextStatus)) {
+    return res.status(400).json({ ok: false, error: "status must be OPEN, IN_REVIEW, or RESOLVED" });
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE student_feedback
+       SET status = COALESCE($1, status),
+           admin_note = COALESCE($2, admin_note),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE feedback_id = $3
+       RETURNING feedback_id, status, admin_note, updated_at`,
+      [nextStatus, admin_note || null, req.params.feedbackId]
+    );
+    if (!result.rowCount) return res.status(404).json({ ok: false, error: "Feedback not found" });
     return res.json({ ok: true, data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message });
