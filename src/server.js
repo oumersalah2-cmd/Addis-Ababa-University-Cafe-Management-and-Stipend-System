@@ -844,8 +844,12 @@ app.get("/kitchen", (_req, res) => {
   return res.sendFile(path.join(__dirname, "..", "public", "kitchen.html"));
 });
 
-app.get("*", (_req, res) => {
-  return res.sendFile(path.join(__dirname, "..", "public", "index.html"));
+app.use((req, res) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
+    res.sendFile(path.join(__dirname, "..", "public", "index.html"));
+  } else {
+    res.status(404).json({ error: 'Not Found' });
+  }
 });
 
 app.listen(port, () => {
