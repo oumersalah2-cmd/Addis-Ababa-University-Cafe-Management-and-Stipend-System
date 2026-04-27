@@ -3,59 +3,173 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AAU Cafe & Stipend System</title>
+    <title>AAU Cafe &amp; Stipend System — Registration</title>
+    <meta name="description" content="Addis Ababa University student registration portal for cafe and stipend management." />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div id="toastContainer" class="toast-container"></div>
+
     <header class="topbar">
       <div class="topbar-inner">
         <div>
           <div class="brand">Addis Ababa University</div>
-          <div class="subtitle">Cafe Management and Stipend System</div>
+          <div class="subtitle">Cafe Management &amp; Stipend System</div>
         </div>
-        <nav class="nav-links">
-          <a href="/">Registration</a>
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="/" aria-current="page">Register</a>
           <a href="/student">Student Portal</a>
           <a href="/admin">Admin</a>
         </nav>
       </div>
     </header>
+
     <main class="container">
-      <section class="hero">
-        <h1>Student Self Registration</h1>
-        <p>College of Technology and Built Environment (5 Kilo) - first-time student onboarding.</p>
+      <section class="hero" aria-labelledby="heroTitle">
+        <h1 id="heroTitle">Student Self-Registration</h1>
+        <p>College of Technology and Built Environment (5 Kilo) — first-time student onboarding. Complete the steps below to create your account.</p>
       </section>
 
-      <section class="card">
-        <h2>Registration Form</h2>
-        <form id="studentForm" class="form-grid">
-          <label>Student ID <input name="student_id" required /></label>
-          <label>First Name <input name="first_name" required /></label>
-          <label>Last Name <input name="last_name" required /></label>
-          <label>Year of Study <input name="year_of_study" type="number" min="1" max="7" required /></label>
-          <label class="full">Department
-            <select name="dept_id" id="deptSelect" required></select>
-          </label>
-          <label>Cafe Status
-            <select name="cafe_status" id="cafeStatus" required>
-              <option value="CAFE">CAFE</option>
-              <option value="NON_CAFE">NON_CAFE</option>
-            </select>
-          </label>
-          <label>Bank Account Number <input name="bank_account_number" id="bankAccount" /></label>
-          <label>Dorm Block
-            <select name="dorm_block" required>
-              <option value="A">Block A</option>
-              <option value="B">Block B</option>
-            </select>
-          </label>
-          <label>Dorm Number <input name="dorm_number" placeholder="e.g. A-203 (optional)" /></label>
-          <label>Choose Username <input name="username" required /></label>
-          <label>Choose Password <input name="password" type="password" required /></label>
-          <small class="full">Password must be 8+ chars with uppercase, lowercase, and number.</small>
-          <button class="full" type="submit">Register</button>
+      <section class="card" style="max-width: 680px; margin: 0 auto 2rem;" aria-labelledby="regFormTitle">
+        <h2 id="regFormTitle" style="text-align:center; margin-bottom: 0.5rem;">Create Your Account</h2>
+        <p style="text-align:center; color: var(--aau-text-muted); margin-bottom: 2rem; font-size:0.9rem;">
+          Already registered? <a href="/student" style="color: var(--aau-accent);">Sign in here</a>
+        </p>
+
+        <!-- Stepper -->
+        <div class="stepper" role="list" aria-label="Registration steps">
+          <div class="step-item active" id="stepItem1" role="listitem">
+            <div class="step-circle" aria-label="Step 1">1</div>
+            <span class="step-label">Identity</span>
+          </div>
+          <div class="step-connector" id="conn1"></div>
+          <div class="step-item" id="stepItem2" role="listitem">
+            <div class="step-circle" aria-label="Step 2">2</div>
+            <span class="step-label">Academic</span>
+          </div>
+          <div class="step-connector" id="conn2"></div>
+          <div class="step-item" id="stepItem3" role="listitem">
+            <div class="step-circle" aria-label="Step 3">3</div>
+            <span class="step-label">Cafe Type</span>
+          </div>
+          <div class="step-connector" id="conn3"></div>
+          <div class="step-item" id="stepItem4" role="listitem">
+            <div class="step-circle" aria-label="Step 4">4</div>
+            <span class="step-label">Account</span>
+          </div>
+        </div>
+
+        <form id="studentForm" novalidate>
+          <!-- Step 1: Identity -->
+          <div class="step-page active" id="step1">
+            <div class="form-grid">
+              <label for="inp_student_id">
+                Student ID
+                <input id="inp_student_id" name="student_id" placeholder="e.g. UGR/1234/18" required autocomplete="off" />
+              </label>
+              <label for="inp_year">
+                Year of Study
+                <input id="inp_year" name="year_of_study" type="number" min="1" max="7" placeholder="1 – 7" required />
+              </label>
+              <label for="inp_first">
+                First Name
+                <input id="inp_first" name="first_name" placeholder="Your first name" required autocomplete="given-name" />
+              </label>
+              <label for="inp_last">
+                Last Name
+                <input id="inp_last" name="last_name" placeholder="Your last name" required autocomplete="family-name" />
+              </label>
+              <label for="inp_dorm_block">
+                Dormitory Block
+                <select id="inp_dorm_block" name="dorm_block" required>
+                  <option value="A">Block A</option>
+                  <option value="B">Block B</option>
+                </select>
+              </label>
+              <label for="inp_dorm_num">
+                Room Number
+                <input id="inp_dorm_num" name="dorm_number" placeholder="e.g. A-203 (optional)" autocomplete="off" />
+              </label>
+            </div>
+            <div class="step-nav">
+              <span></span>
+              <button type="button" id="next1">Next: Academic Info &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Step 2: Academic -->
+          <div class="step-page" id="step2">
+            <div class="form-grid">
+              <label class="full" for="inp_dept">
+                Department
+                <select id="inp_dept" name="dept_id" required>
+                  <option value="">Loading departments...</option>
+                </select>
+              </label>
+            </div>
+            <div class="step-nav">
+              <button type="button" id="prev2" class="secondary">&larr; Back</button>
+              <button type="button" id="next2">Next: Cafe Type &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Step 3: Cafe Status -->
+          <div class="step-page" id="step3">
+            <p style="color: var(--aau-text-muted); font-size:0.9rem; margin-bottom:1.5rem;">
+              Choose your student type. <strong>CAFE students</strong> eat at the university cafeteria.
+              <strong>NON-CAFE students</strong> receive a monthly stipend of 3,000 ETB.
+            </p>
+            <div class="form-grid">
+              <label class="full" for="inp_cafe">
+                Student Type
+                <select id="inp_cafe" name="cafe_status" required>
+                  <option value="CAFE">CAFE — Eat at the cafeteria</option>
+                  <option value="NON_CAFE">NON-CAFE — Receive monthly stipend</option>
+                </select>
+              </label>
+              <label class="full" id="bankLabel" for="inp_bank" style="display:none;">
+                Bank Account Number
+                <input id="inp_bank" name="bank_account_number" placeholder="Your bank account number (required for stipend)" autocomplete="off" />
+                <small style="color:var(--aau-text-muted);">Stipend of 3,000 ETB is sent to this account every month.</small>
+              </label>
+            </div>
+            <div class="step-nav">
+              <button type="button" id="prev3" class="secondary">&larr; Back</button>
+              <button type="button" id="next3">Next: Account Setup &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Step 4: Account -->
+          <div class="step-page" id="step4">
+            <div class="form-grid">
+              <label class="full" for="inp_username">
+                Username
+                <input id="inp_username" name="username" placeholder="Choose a username" required autocomplete="username" />
+              </label>
+              <label class="full" for="inp_password">
+                Password
+                <input id="inp_password" name="password" type="password" placeholder="At least 8 characters" required autocomplete="new-password" />
+                <div class="pw-strength-wrap">
+                  <div class="pw-strength-bar" role="progressbar" aria-label="Password strength">
+                    <div class="pw-strength-fill" id="pwFill"></div>
+                  </div>
+                  <span class="pw-strength-label" id="pwLabel">Enter a password</span>
+                </div>
+              </label>
+              <label class="full" for="inp_confirm">
+                Confirm Password
+                <input id="inp_confirm" type="password" placeholder="Re-enter your password" required autocomplete="new-password" />
+              </label>
+            </div>
+            <small class="full" style="color:var(--aau-text-muted); display:block; margin-top:0.25rem;">
+              Password must be 8+ characters and include uppercase, lowercase, and a number.
+            </small>
+            <div class="step-nav">
+              <button type="button" id="prev4" class="secondary">&larr; Back</button>
+              <button type="submit" id="submitBtn">Create Account</button>
+            </div>
+          </div>
         </form>
-        <p id="studentMessage" class="message"></p>
       </section>
     </main>
 

@@ -562,6 +562,72 @@ app.get("/api/admin/audit/recent", authenticate, requireAdmin, async (_req, res)
   }
 });
 
+// --- Admin Stats ---
+app.get("/api/admin/stats", authenticate, requireAdmin, async (_req, res) => {
+  try {
+    const [p1, p2, p3, p4, p5, p6] = await Promise.all([
+      pool.query("SELECT COUNT(*)::int AS n FROM student WHERE is_approved = FALSE"),
+      pool.query("SELECT COUNT(*)::int AS n FROM stipend_transaction WHERE status = 'PENDING'"),
+      pool.query("SELECT COUNT(*)::int AS n FROM student_feedback WHERE status = 'OPEN'"),
+      pool.query("SELECT COUNT(*)::int AS n FROM student WHERE is_approved = TRUE"),
+      pool.query("SELECT COUNT(*)::int AS n FROM student WHERE cafe_status = 'CAFE' AND is_approved = TRUE"),
+      pool.query("SELECT COUNT(*)::int AS n FROM student WHERE cafe_status = 'NON_CAFE' AND is_approved = TRUE"),
+    ]);
+    return res.json({
+      ok: true,
+      data: {
+        pending_students: p1.rows[0].n,
+        pending_stipends: p2.rows[0].n,
+        open_feedback: p3.rows[0].n,
+        total_approved: p4.rows[0].n,
+        cafe_students: p5.rows[0].n,
+        non_cafe_students: p6.rows[0].n,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+app.get("/api/admin/students/all", authenticate, requireAdmin, async (req, res) => {
+  const { status, cafe_status, search } = req.query;
+  try {
+    let whereClause = "WHERE 1=1";
+    const params = [];
+    if (status === "approved") {
+      params.push(true);
+      whereClause += ` AND s.is_approved = $${params.length}`;
+    } else if (status === "pending") {
+      params.push(false);
+      whereClause += ` AND s.is_approved = $${params.length}`;
+    }
+    if (cafe_status) {
+      params.push(cafe_status.toUpperCase());
+      whereClause += ` AND s.cafe_status = $${params.length}`;
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      const idx = params.length;
+      whereClause += ` AND (s.student_id ILIKE $${idx} OR s.first_name ILIKE $${idx} OR s.last_name ILIKE $${idx})`;
+    }
+    const result = await pool.query(
+      `SELECT s.student_id, s.first_name, s.last_name, s.year_of_study,
+              s.cafe_status, s.is_approved, s.registered_at, d.dept_name,
+              dr.block_name, dr.dorm_number
+       FROM student s
+       INNER JOIN department d ON d.dept_id = s.dept_id
+       LEFT JOIN dormitory dr ON dr.dorm_id = s.dorm_id
+       ${whereClause}
+       ORDER BY s.registered_at DESC
+       LIMIT 100`,
+      params
+    );
+    return res.json({ ok: true, count: result.rowCount, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 // --- Menu API ---
 app.get("/api/menu", async (_req, res) => {
   try {

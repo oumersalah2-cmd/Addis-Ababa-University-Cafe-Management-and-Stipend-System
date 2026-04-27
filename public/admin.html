@@ -4,100 +4,315 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AAU Admin Dashboard</title>
+    <meta name="description" content="Addis Ababa University administrative dashboard for student management and stipend operations." />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div id="toastContainer" class="toast-container"></div>
+
     <header class="topbar">
       <div class="topbar-inner">
         <div>
           <div class="brand">Addis Ababa University</div>
           <div class="subtitle">Administrative Dashboard</div>
         </div>
-        <nav class="nav-links">
-          <a href="/">Registration</a>
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="/">Register</a>
           <a href="/student">Student Portal</a>
-          <a href="/admin">Admin</a>
-          <a href="/kitchen" style="color: #ffc107; font-weight: bold;">Kitchen Dashboard</a>
+          <a href="/admin" aria-current="page">Admin</a>
         </nav>
       </div>
     </header>
-    <main class="container">
-      <section class="hero">
-        <h1>AAU Admin Dashboard</h1>
-        <p>Secure workspace for student approvals, stipend operations, reporting, and menu management.</p>
-      </section>
 
-      <section class="card auth-card">
-        <div class="auth-header">
-          <h2 style="margin: 0;">Admin Login</h2>
-          <button id="adminLogoutBtn" class="inline-btn" type="button">Logout</button>
-        </div>
-        <form id="adminLoginForm" class="form-grid" style="margin-top: 15px;">
-          <label>Admin Username <input name="username" value="admin" required /></label>
-          <label>Admin Password <input name="password" type="password" value="admin123" required /></label>
-          <button class="full" type="submit">Admin Login</button>
-        </form>
-        <p id="adminMessage" class="message"></p>
-      </section>
+    <!-- ── LOGIN VIEW ──────────────────────────────────────────────────────── -->
+    <div id="adminLoginView">
+      <main class="container">
+        <section class="hero" aria-labelledby="adminHeroTitle">
+          <h1 id="adminHeroTitle">Admin Dashboard</h1>
+          <p>Secure workspace for student approvals, stipend operations, feedback review, and menu management.</p>
+        </section>
+        <section class="card auth-card" aria-labelledby="adminLoginTitle">
+          <h2 id="adminLoginTitle" style="margin:0 0 1.5rem;">Admin Sign In</h2>
+          <form id="adminLoginForm" class="form-grid">
+            <label for="adminUsername">
+              Admin Username
+              <input id="adminUsername" name="username" autocomplete="username" required placeholder="Admin username" />
+            </label>
+            <label for="adminPassword">
+              Password
+              <input id="adminPassword" name="password" type="password" autocomplete="current-password" required placeholder="Admin password" />
+            </label>
+            <button class="full" type="submit" id="adminLoginBtn">Sign In as Admin</button>
+          </form>
+          <p id="adminMessage" class="message" aria-live="polite"></p>
+        </section>
+      </main>
+    </div>
 
-      <section class="card">
-        <div class="admin-controls">
-          <button id="refreshAdmin">Refresh Data</button>
-        </div>
+    <!-- ── DASHBOARD VIEW ─────────────────────────────────────────────────── -->
+    <div id="adminDashboardView" style="display:none;">
+      <div class="admin-layout">
 
-        <h3>Menu Management</h3>
-        <form id="menuForm" class="form-grid">
-          <label>Item Name <input name="item_name" required /></label>
-          <label>Price <input name="price" type="number" step="0.01" value="0.00" required /></label>
-          <label>Category
-            <select name="category" required>
-              <option value="Breakfast">Breakfast</option>
-              <option value="Lunch">Lunch</option>
-              <option value="Dinner">Dinner</option>
-              <option value="Snack">Snack</option>
-              <option value="Drink">Drink</option>
-            </select>
-          </label>
-          <label class="full">Description <input name="description" /></label>
-          <button class="full" type="submit">Add Menu Item</button>
-        </form>
-        <ul id="menuList" style="margin-top: 15px;"></ul>
+        <!-- Sidebar -->
+        <aside class="admin-sidebar" aria-label="Admin navigation">
+          <div class="sidebar-user-block">
+            <div class="sidebar-avatar" id="sidebarAvatar" aria-hidden="true">A</div>
+            <div class="sidebar-username" id="sidebarUsername">Admin</div>
+            <button class="sidebar-logout-btn" id="adminLogoutBtn" type="button">Logout</button>
+          </div>
 
-        <h3>Pending Students</h3>
-        <ul id="pendingStudents"><li>Login as admin to load data.</li></ul>
+          <div class="sidebar-nav-label">Dashboard</div>
+          <button class="sidebar-item active" data-section="overview">
+            <span class="sidebar-item-icon" aria-hidden="true">&#9781;</span>
+            Overview
+          </button>
 
-        <h3>Create Monthly Cost Sharing (NON_CAFE)</h3>
-        <form id="stipendForm" class="form-grid">
-          <label>Student
-            <select name="student_id" id="nonCafeStudents" required></select>
-          </label>
-          <label>Month (YYYY-MM-01) <input name="stipend_month" type="date" required /></label>
-          <label>Amount (fixed) <input name="amount_fixed" value="3000" disabled /></label>
-          <button class="full" type="submit">Create Pending Monthly Payment</button>
-        </form>
-        <p id="stipendMessage" class="message"></p>
+          <div class="sidebar-nav-label">Students</div>
+          <button class="sidebar-item" data-section="pending">
+            <span class="sidebar-item-icon" aria-hidden="true">&#9677;</span>
+            Pending Approvals
+            <span class="sidebar-badge" id="pendingCountBadge" style="display:none;">0</span>
+          </button>
+          <button class="sidebar-item" data-section="students">
+            <span class="sidebar-item-icon" aria-hidden="true">&#9776;</span>
+            All Students
+          </button>
 
-        <h3>Pending Stipend Confirmations</h3>
-        <ul id="pendingStipends"><li>Login as admin to load data.</li></ul>
+          <div class="sidebar-nav-label">Operations</div>
+          <button class="sidebar-item" data-section="stipends">
+            <span class="sidebar-item-icon" aria-hidden="true">&#8358;</span>
+            Stipends
+            <span class="sidebar-badge" id="stipendCountBadge" style="display:none;">0</span>
+          </button>
+          <button class="sidebar-item" data-section="menu">
+            <span class="sidebar-item-icon" aria-hidden="true">&#9742;</span>
+            Menu
+          </button>
 
-        <h3>Monthly Report</h3>
-        <form id="monthlyReportForm">
-          <label>Month (YYYY-MM-01) <input name="month" type="date" required /></label>
-          <button type="submit">Load Report</button>
-        </form>
-        <pre id="monthlyReportBox">Login and choose month to view report.</pre>
+          <div class="sidebar-nav-label">Communications</div>
+          <button class="sidebar-item" data-section="feedback">
+            <span class="sidebar-item-icon" aria-hidden="true">&#9993;</span>
+            Feedback
+            <span class="sidebar-badge" id="feedbackCountBadge" style="display:none;">0</span>
+          </button>
 
-        <h3>Recent Admin Activity</h3>
-        <ul id="auditLogList"><li>Login as admin to load activity log.</li></ul>
+          <div class="sidebar-nav-label">Reports</div>
+          <button class="sidebar-item" data-section="reports">
+            <span class="sidebar-item-icon" aria-hidden="true">&#9783;</span>
+            Monthly Report
+          </button>
+          <button class="sidebar-item" data-section="audit">
+            <span class="sidebar-item-icon" aria-hidden="true">&#9998;</span>
+            Audit Log
+          </button>
+        </aside>
 
-        <h3>Student Feedback / Complaints</h3>
-        <p style="color: rgba(255,255,255,0.75); margin-top: -10px;">
-          Review FOOD concerns (CAFE) and PAYMENT concerns (NON_CAFE). You can add a note and resolve them.
-        </p>
-        <ul id="feedbackAdminList"><li>Login as admin to load feedback.</li></ul>
-      </section>
+        <!-- Main content -->
+        <main class="admin-main" id="adminMain">
 
-    </main>
+          <!-- ── Overview ───────────────────────────────────────────────── -->
+          <section class="admin-section active" id="section-overview" aria-labelledby="ovTitle">
+            <div class="section-header">
+              <h2 id="ovTitle">Overview</h2>
+              <p>System-wide summary of students, payments, and feedback.</p>
+            </div>
+            <div class="stats-grid" id="statsGrid">
+              <div class="stat-card alert"><div class="stat-value" id="stat-pending">—</div><div class="stat-label">Pending Approvals</div></div>
+              <div class="stat-card alert"><div class="stat-value" id="stat-stipends">—</div><div class="stat-label">Pending Stipends</div></div>
+              <div class="stat-card alert"><div class="stat-value" id="stat-feedback">—</div><div class="stat-label">Open Feedback</div></div>
+              <div class="stat-card success"><div class="stat-value" id="stat-approved">—</div><div class="stat-label">Approved Students</div></div>
+              <div class="stat-card"><div class="stat-value" id="stat-cafe">—</div><div class="stat-label">Cafe Students</div></div>
+              <div class="stat-card"><div class="stat-value" id="stat-noncafe">—</div><div class="stat-label">Non-Cafe Students</div></div>
+            </div>
+            <div class="card" style="margin-top:0.5rem;">
+              <h3 style="margin-bottom:0.5rem;">Quick Actions</h3>
+              <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                <button onclick="switchSection('pending')">Review Pending Students</button>
+                <button onclick="switchSection('stipends')" class="secondary">Manage Stipends</button>
+                <button onclick="switchSection('feedback')" class="secondary">Review Feedback</button>
+                <button id="refreshAdminBtn" class="secondary">Refresh Data</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Pending Approvals ──────────────────────────────────────── -->
+          <section class="admin-section" id="section-pending" aria-labelledby="pendTitle">
+            <div class="section-header">
+              <h2 id="pendTitle">Pending Approvals</h2>
+              <p>Students awaiting account activation. Review and approve below.</p>
+            </div>
+            <div class="card">
+              <ul id="pendingStudentsList" style="gap:0.75rem;">
+                <li style="color:var(--aau-text-muted);">Loading...</li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- ── All Students ────────────────────────────────────────────── -->
+          <section class="admin-section" id="section-students" aria-labelledby="allStudTitle">
+            <div class="section-header">
+              <h2 id="allStudTitle">All Students</h2>
+              <p>Search and filter the complete student roster.</p>
+            </div>
+            <div class="card">
+              <div class="filter-bar">
+                <input id="studentSearch" type="search" placeholder="Search by name or ID..." />
+                <select id="studentFilterStatus">
+                  <option value="">All statuses</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                </select>
+                <select id="studentFilterCafe">
+                  <option value="">All types</option>
+                  <option value="CAFE">Cafe</option>
+                  <option value="NON_CAFE">Non-Cafe</option>
+                </select>
+                <button class="filter-btn" id="searchStudentsBtn">Search</button>
+              </div>
+              <div class="data-table-wrap">
+                <table class="data-table" aria-label="Students table">
+                  <thead>
+                    <tr>
+                      <th>Student ID</th>
+                      <th>Name</th>
+                      <th>Department</th>
+                      <th>Year</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Dorm</th>
+                    </tr>
+                  </thead>
+                  <tbody id="allStudentsBody">
+                    <tr><td colspan="7" style="color:var(--aau-text-muted);text-align:center;padding:2rem;">Click Search to load students.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Stipends ────────────────────────────────────────────────── -->
+          <section class="admin-section" id="section-stipends" aria-labelledby="stipTitle">
+            <div class="section-header">
+              <h2 id="stipTitle">Monthly Stipends</h2>
+              <p>Create and confirm monthly stipend payments for NON-CAFE students.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.5rem;">
+              <div class="card">
+                <h3 style="margin-bottom:1.25rem;">Create Pending Stipend</h3>
+                <form id="stipendForm" class="form-grid">
+                  <label class="full" for="stipendStudentSelect">
+                    NON-CAFE Student
+                    <select id="stipendStudentSelect" name="student_id" required>
+                      <option value="">Loading...</option>
+                    </select>
+                  </label>
+                  <label class="full" for="stipendMonth">
+                    Month
+                    <input id="stipendMonth" name="stipend_month" type="date" required />
+                  </label>
+                  <label class="full" for="stipendAmt">
+                    Amount (fixed)
+                    <input id="stipendAmt" value="3,000 ETB" disabled />
+                  </label>
+                  <button class="full" type="submit">Create Pending Payment</button>
+                </form>
+                <p id="stipendMessage" class="message" aria-live="polite"></p>
+              </div>
+              <div class="card">
+                <h3 style="margin-bottom:1.25rem;">Confirm Pending Payments</h3>
+                <ul id="pendingStipendsList" style="gap:0.75rem;">
+                  <li style="color:var(--aau-text-muted);">Loading...</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Menu ────────────────────────────────────────────────────── -->
+          <section class="admin-section" id="section-menu" aria-labelledby="menuTitle">
+            <div class="section-header">
+              <h2 id="menuTitle">Menu Management</h2>
+              <p>Add items and toggle availability for the cafeteria menu.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.5rem;">
+              <div class="card">
+                <h3 style="margin-bottom:1.25rem;">Add Menu Item</h3>
+                <form id="menuForm" class="form-grid">
+                  <label for="menuItemName">Item Name <input id="menuItemName" name="item_name" required /></label>
+                  <label for="menuItemPrice">
+                    Price (ETB)
+                    <input id="menuItemPrice" name="price" type="number" step="0.01" value="0.00" required />
+                  </label>
+                  <label for="menuItemCategory">
+                    Category
+                    <select id="menuItemCategory" name="category" required>
+                      <option value="Breakfast">Breakfast</option>
+                      <option value="Lunch">Lunch</option>
+                      <option value="Dinner">Dinner</option>
+                      <option value="Snack">Snack</option>
+                      <option value="Drink">Drink</option>
+                    </select>
+                  </label>
+                  <label class="full" for="menuItemDesc">Description <input id="menuItemDesc" name="description" /></label>
+                  <button class="full" type="submit">Add Item</button>
+                </form>
+              </div>
+              <div class="card">
+                <h3 style="margin-bottom:1.25rem;">Current Menu</h3>
+                <ul id="menuList" style="gap:0.5rem;">
+                  <li style="color:var(--aau-text-muted);">Loading...</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Feedback ────────────────────────────────────────────────── -->
+          <section class="admin-section" id="section-feedback" aria-labelledby="fbTitle">
+            <div class="section-header">
+              <h2 id="fbTitle">Student Feedback</h2>
+              <p>Review and respond to FOOD (CAFE) and PAYMENT (NON-CAFE) concerns.</p>
+            </div>
+            <div id="feedbackAdminList">
+              <p style="color:var(--aau-text-muted);">Loading...</p>
+            </div>
+          </section>
+
+          <!-- ── Monthly Report ──────────────────────────────────────────── -->
+          <section class="admin-section" id="section-reports" aria-labelledby="repTitle">
+            <div class="section-header">
+              <h2 id="repTitle">Monthly Stipend Report</h2>
+              <p>View transaction totals and payment breakdown for any given month.</p>
+            </div>
+            <div class="card" style="max-width:560px;">
+              <form id="monthlyReportForm" class="form-grid">
+                <label class="full" for="reportMonth">
+                  Select Month
+                  <input id="reportMonth" name="month" type="date" required />
+                </label>
+                <button class="full" type="submit">Load Report</button>
+              </form>
+            </div>
+            <div class="card" id="reportResultCard" style="display:none;margin-top:1.5rem;">
+              <h3 style="margin-bottom:1.25rem;" id="reportMonthLabel">Report</h3>
+              <div class="stats-grid" id="reportStatsGrid"></div>
+            </div>
+          </section>
+
+          <!-- ── Audit Log ───────────────────────────────────────────────── -->
+          <section class="admin-section" id="section-audit" aria-labelledby="auditTitle">
+            <div class="section-header">
+              <h2 id="auditTitle">Audit Log</h2>
+              <p>Recent administrative actions across the system (last 50 entries).</p>
+            </div>
+            <div class="card">
+              <div id="auditLogContainer">
+                <p style="color:var(--aau-text-muted);">Loading...</p>
+              </div>
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </div>
 
     <script src="/admin.js"></script>
   </body>

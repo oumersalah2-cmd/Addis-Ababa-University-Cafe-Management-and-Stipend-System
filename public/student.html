@@ -4,74 +4,194 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AAU Student Portal</title>
+    <meta name="description" content="Addis Ababa University student portal for stipend tracking and feedback." />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div id="toastContainer" class="toast-container"></div>
+
     <header class="topbar">
       <div class="topbar-inner">
         <div>
           <div class="brand">Addis Ababa University</div>
           <div class="subtitle">Student Portal</div>
         </div>
-        <nav class="nav-links">
-          <a href="/">Registration</a>
-          <a href="/student">Student Portal</a>
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="/">Register</a>
+          <a href="/student" aria-current="page">Student Portal</a>
           <a href="/admin">Admin</a>
         </nav>
       </div>
     </header>
+
     <main class="container">
-      <section class="card auth-card">
+
+      <!-- ── Login card ────────────────────────────────────────────────── -->
+      <section id="loginView" class="card auth-card" aria-labelledby="loginTitle">
         <div class="auth-header">
-          <h2 style="margin: 0;">Student Login</h2>
-          <button id="studentLogoutBtn" class="inline-btn" type="button">Logout</button>
+          <h2 id="loginTitle" style="margin:0;">Student Login</h2>
         </div>
-        <form id="studentLoginForm" class="form-grid" style="margin-top: 15px;">
-          <label>Username <input name="username" autocomplete="username" required /></label>
-          <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
-          <button class="full" type="submit">Login</button>
-        </form>
-        <p style="margin: 12px 0 0; color: rgba(255,255,255,0.75);">
-          Login to complain and see your profile.
+        <p style="color:var(--aau-text-muted);margin:0.5rem 0 1.25rem;font-size:0.9rem;">
+          Sign in to view your profile, payment status, and submit feedback.
         </p>
-        <p id="studentLoginMessage" class="message"></p>
+        <form id="studentLoginForm" class="form-grid" style="margin-top:0.5rem;">
+          <label for="loginUsername">
+            Username
+            <input id="loginUsername" name="username" autocomplete="username" required placeholder="Your username" />
+          </label>
+          <label for="loginPassword">
+            Password
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required placeholder="Your password" />
+          </label>
+          <button class="full" type="submit" id="loginBtn">Sign In</button>
+        </form>
+        <p style="margin:1rem 0 0;color:rgba(255,255,255,0.65);font-size:0.88rem;">
+          New student? <a href="/" style="color:var(--aau-accent);">Register here</a>
+        </p>
+        <p id="studentLoginMessage" class="message" aria-live="polite"></p>
       </section>
 
+      <!-- ── Portal content (shown after login) ───────────────────────── -->
       <div id="portalContent" style="display:none;">
-        <section class="card">
-          <h2>My Profile</h2>
-          <pre id="profileBox">Loading...</pre>
-        </section>
 
-        <section class="card" id="nonCafePaymentsCard" style="display:none;">
-          <h2>Monthly Cost Sharing (Sep → Jun)</h2>
-          <div id="paymentTracker"><p>Loading payment tracker...</p></div>
-        </section>
+        <!-- Profile card -->
+        <div class="profile-card" id="profileCard" aria-label="Student profile summary">
+          <div class="profile-avatar" id="profileAvatar" aria-hidden="true">?</div>
+          <div class="profile-info">
+            <h2 class="profile-name" id="profileName">Loading...</h2>
+            <div class="profile-id" id="profileStudentId"></div>
+            <div class="profile-badges" id="profileBadges"></div>
+          </div>
+          <button id="studentLogoutBtn" class="secondary" style="padding:0.6rem 1.2rem;font-size:0.85rem;white-space:nowrap;" type="button">
+            Logout
+          </button>
+        </div>
 
-        <section class="card">
-          <h2>Feedback / Complaint</h2>
-          <p style="color: rgba(255,255,255,0.75); margin-top: -10px;">
-            Cafe students: report food issues. Non-cafe students: report payment issues.
-          </p>
-          <form id="feedbackForm" class="form-grid">
-            <label>Category
-              <select name="category" id="feedbackCategory" required>
-                <option value="FOOD">FOOD</option>
-                <option value="PAYMENT">PAYMENT</option>
-              </select>
-            </label>
-            <label>Photo (optional)
-              <input name="photo" type="file" accept="image/*" />
-            </label>
-            <label class="full">Message
-              <input name="message" placeholder="Write your concern..." required />
-            </label>
-            <button class="full" type="submit">Submit</button>
-          </form>
-          <p id="feedbackMessage" class="message"></p>
-          <h3 style="margin-top: 25px;">My Recent Feedback</h3>
-          <ul id="feedbackList"><li>Loading...</li></ul>
-        </section>
+        <!-- Pending approval banner -->
+        <div class="pending-banner" id="pendingBanner" style="display:none;" role="alert">
+          <span class="pending-banner-icon" aria-hidden="true">&#9888;</span>
+          <span>Your account is pending admin approval. You can view your profile but some features are limited until approved.</span>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" role="tablist" aria-label="Portal sections">
+          <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tabProfile"   data-tab="profile">Profile</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tabPayments" data-tab="payments" id="paymentsTabBtn">Payments</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tabFeedback" data-tab="feedback">Feedback</button>
+        </div>
+
+        <!-- ── Tab: Profile ──────────────────────────────────────────── -->
+        <div class="tab-content active" id="tabProfile" role="tabpanel">
+          <div class="card">
+            <h3 style="margin-bottom:1.25rem;">Personal Details</h3>
+            <div class="details-grid" id="detailsGrid">
+              <div class="detail-item"><div class="detail-label">Loading</div><div class="detail-value">...</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Tab: Payments / Meals ─────────────────────────────────── -->
+        <div class="tab-content" id="tabPayments" role="tabpanel">
+
+          <!-- NON_CAFE: stipend timeline -->
+          <div id="stipendSection" style="display:none;">
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:1rem;">
+                <div>
+                  <h3 style="margin:0;">Monthly Stipend — Sep to Jun</h3>
+                  <p style="margin:0.3rem 0 0;color:var(--aau-text-muted);font-size:0.88rem;">3,000 ETB per month deposited to your bank account.</p>
+                </div>
+                <span class="status-badge status-pending" style="font-size:0.8rem;" id="stipendSummaryBadge"></span>
+              </div>
+              <div class="stipend-timeline" id="stipendTimeline">
+                <p style="color:var(--aau-text-muted);">Loading stipend data...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- CAFE: meals -->
+          <div id="mealsSection" style="display:none;">
+            <div class="card">
+              <div style="margin-bottom:1.5rem;">
+                <h3 style="margin:0;">Today&apos;s Meals</h3>
+                <p style="margin:0.3rem 0 0;color:var(--aau-text-muted);font-size:0.88rem;">
+                  Meal card: <code id="mealCardDisplay" style="color:var(--aau-accent);"></code>
+                </p>
+              </div>
+              <div class="meal-grid" id="mealGrid">
+                <!-- Breakfast -->
+                <div class="meal-slot" id="slot-BREAKFAST">
+                  <div class="meal-slot-icon" aria-hidden="true">&#9728;</div>
+                  <div class="meal-slot-name">Breakfast</div>
+                  <div class="meal-slot-status" id="meal-status-BREAKFAST">Not logged</div>
+                  <button class="meal-log-btn" onclick="logMeal('BREAKFAST')" id="mealBtn-BREAKFAST">Log Breakfast</button>
+                </div>
+                <!-- Lunch -->
+                <div class="meal-slot" id="slot-LUNCH">
+                  <div class="meal-slot-icon" aria-hidden="true">&#9749;</div>
+                  <div class="meal-slot-name">Lunch</div>
+                  <div class="meal-slot-status" id="meal-status-LUNCH">Not logged</div>
+                  <button class="meal-log-btn" onclick="logMeal('LUNCH')" id="mealBtn-LUNCH">Log Lunch</button>
+                </div>
+                <!-- Dinner -->
+                <div class="meal-slot" id="slot-DINNER">
+                  <div class="meal-slot-icon" aria-hidden="true">&#127762;</div>
+                  <div class="meal-slot-name">Dinner</div>
+                  <div class="meal-slot-status" id="meal-status-DINNER">Not logged</div>
+                  <button class="meal-log-btn" onclick="logMeal('DINNER')" id="mealBtn-DINNER">Log Dinner</button>
+                </div>
+              </div>
+              <h3 style="margin-bottom:1rem;">Recent Meal History</h3>
+              <ul id="mealHistoryList" style="gap:0.5rem;">
+                <li>Loading...</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Tab: Feedback ─────────────────────────────────────────── -->
+        <div class="tab-content" id="tabFeedback" role="tabpanel">
+          <div class="card">
+            <h3 style="margin:0 0 0.4rem;">Submit Feedback</h3>
+            <p style="color:var(--aau-text-muted);margin:0 0 1.5rem;font-size:0.88rem;">
+              CAFE students: report food quality issues. NON-CAFE students: report payment concerns.
+            </p>
+            <form id="feedbackForm" class="form-grid" novalidate>
+              <label for="feedbackCategory">
+                Category
+                <select id="feedbackCategory" name="category" required>
+                  <option value="FOOD">FOOD — Cafeteria issues</option>
+                  <option value="PAYMENT">PAYMENT — Stipend concerns</option>
+                </select>
+              </label>
+              <div class="photo-upload-area">
+                <label for="feedbackPhoto">
+                  Attach Photo (optional)
+                  <input id="feedbackPhoto" name="photo" type="file" accept="image/*" />
+                </label>
+                <div class="photo-preview-box" id="photoPreviewBox">
+                  <img id="photoPreviewImg" src="" alt="Attachment preview" />
+                </div>
+              </div>
+              <label class="full" for="feedbackMessage">
+                Your Message
+                <textarea id="feedbackMessage" name="message" rows="4" placeholder="Describe your concern in detail..." required
+                  style="background:rgba(0,0,0,0.2);border:1px solid var(--glass-border);border-radius:12px;padding:0.8rem 1rem;color:#fff;font-size:1rem;resize:vertical;font-family:inherit;"></textarea>
+              </label>
+              <button class="full" type="submit" id="feedbackSubmitBtn">Submit Feedback</button>
+            </form>
+            <p id="feedbackMsgEl" class="message" aria-live="polite"></p>
+          </div>
+
+          <div class="card" style="margin-top:1.5rem;">
+            <h3 style="margin-bottom:1.25rem;">My Feedback History</h3>
+            <ul id="feedbackList" style="gap:0.75rem;">
+              <li style="color:var(--aau-text-muted);">No feedback submitted yet.</li>
+            </ul>
+          </div>
+        </div>
+
       </div>
     </main>
 
