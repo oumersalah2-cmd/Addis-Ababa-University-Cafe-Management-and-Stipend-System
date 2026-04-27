@@ -290,14 +290,15 @@ app.post("/api/students/register", async (req, res) => {
       bank_account_number || null,
       resolvedDormId,
       mealCardNumber,
+      'SELF', // registered_by
     ];
 
     const studentResult = await client.query(
       `INSERT INTO student (
         student_id, first_name, last_name, year_of_study, dept_id,
-        cafe_status, bank_account_number, dorm_id, meal_card_number
+        cafe_status, bank_account_number, dorm_id, meal_card_number, registered_by
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       RETURNING student_id, first_name, last_name, cafe_status, meal_card_number, is_approved, registered_at`,
       values
     );
@@ -369,13 +370,46 @@ app.get("/api/students/me", authenticate, requireStudent, async (req, res) => {
   }
 });
 
+app.get("/api/students/notifications", authenticate, requireStudent, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT notification_id, title, message, is_read, created_at
+       FROM student_notification
+       WHERE student_id = $1
+       ORDER BY created_at DESC`,
+      [req.user.student_id]
+    );
+    return res.json({ ok: true, data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+app.patch("/api/students/notifications/:notificationId/read", authenticate, requireStudent, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE student_notification
+       SET is_read = TRUE
+       WHERE notification_id = $1 AND student_id = $2
+       RETURNING notification_id`,
+      [req.params.notificationId, req.user.student_id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: "Notification not found" });
+    }
+    return res.json({ ok: true, message: "Notification marked as read" });
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
 app.get("/api/admin/students/pending", authenticate, requireAdmin, async (_req, res) => {
   try {
     const result = await pool.query(
       `SELECT s.student_id, s.first_name, s.last_name, s.cafe_status, s.registered_at, d.dept_name
        FROM student s
        INNER JOIN department d ON d.dept_id = s.dept_id
-       WHERE s.is_approved = FALSE
+       WHERE s.is_approved = FALSE AND s.registered_by = 'SELF'
        ORDER BY s.registered_at ASC`
     );
     return res.json({ ok: true, count: result.rowCount, data: result.rows });
@@ -509,6 +543,13 @@ app.patch("/api/admin/stipends/:transactionId/confirm", authenticate, requireAdm
         Number(req.params.transactionId),
         "Confirmed pending stipend as paid",
       ]
+    );
+
+    // Notify the student
+    await pool.query(
+      `INSERT INTO student_notification (student_id, title, message)
+       VALUES ($1, 'Stipend Payment Confirmed', 'Your stipend payment for ${result.rows[0].stipend_month.slice(0, 7)} has been confirmed and sent to your bank account.')`,
+      [result.rows[0].student_id]
     );
 
     return res.json({

@@ -24,17 +24,17 @@ INSERT INTO dormitory (block_name, dorm_number) VALUES
 ('B', 'B-302');
 
 -- 3. Students (10 records: 5 CAFE, 5 NON_CAFE)
-INSERT INTO student (student_id, first_name, last_name, year_of_study, cafe_status, bank_account_number, dept_id, dorm_id, meal_card_number, is_approved) VALUES
-('UGR/1001/18', 'Abebe', 'Bikila', 3, 'CAFE', NULL, 1, 1, 'MC-10001', TRUE),
-('UGR/1002/18', 'Derartu', 'Tulu', 2, 'NON_CAFE', '1000123456789', 2, 2, NULL, TRUE),
-('UGR/1003/18', 'Haile', 'Gebrselassie', 4, 'CAFE', NULL, 5, 3, 'MC-10002', TRUE),
-('UGR/1004/18', 'Tirunesh', 'Dibaba', 1, 'NON_CAFE', '1000987654321', 6, 4, NULL, TRUE),
-('UGR/1005/18', 'Kenenisa', 'Bekele', 5, 'CAFE', NULL, 3, 5, 'MC-10003', TRUE),
-('UGR/1006/18', 'Meseret', 'Defar', 3, 'NON_CAFE', '1000554433221', 4, 6, NULL, TRUE),
-('UGR/1007/18', 'Sileshi', 'Sihine', 2, 'CAFE', NULL, 2, 7, 'MC-10004', FALSE),
-('UGR/1008/18', 'Genzebe', 'Dibaba', 1, 'NON_CAFE', '1000112233445', 1, 8, NULL, TRUE),
-('UGR/1009/18', 'Lamecha', 'Girma', 4, 'CAFE', NULL, 5, 9, 'MC-10005', TRUE),
-('UGR/1010/18', 'Letesenbet', 'Gidey', 2, 'NON_CAFE', '1000998877665', 6, 10, NULL, TRUE);
+INSERT INTO student (student_id, first_name, last_name, year_of_study, cafe_status, bank_account_number, dept_id, dorm_id, meal_card_number, is_approved, registered_by) VALUES
+('UGR/1001/18', 'Abebe', 'Bikila', 3, 'CAFE', NULL, 1, 1, 'MC-10001', TRUE, 'ADMIN'),
+('UGR/1002/18', 'Derartu', 'Tulu', 2, 'NON_CAFE', '1000123456789', 2, 2, NULL, TRUE, 'ADMIN'),
+('UGR/1003/18', 'Haile', 'Gebrselassie', 4, 'CAFE', NULL, 5, 3, 'MC-10002', TRUE, 'ADMIN'),
+('UGR/1004/18', 'Tirunesh', 'Dibaba', 1, 'NON_CAFE', '1000987654321', 6, 4, NULL, TRUE, 'ADMIN'),
+('UGR/1005/18', 'Kenenisa', 'Bekele', 5, 'CAFE', NULL, 3, 5, 'MC-10003', TRUE, 'ADMIN'),
+('UGR/1006/18', 'Meseret', 'Defar', 3, 'NON_CAFE', '1000554433221', 4, 6, NULL, TRUE, 'ADMIN'),
+('UGR/1007/18', 'Sileshi', 'Sihine', 2, 'CAFE', NULL, 2, 7, 'MC-10004', FALSE, 'ADMIN'),
+('UGR/1008/18', 'Genzebe', 'Dibaba', 1, 'NON_CAFE', '1000112233445', 1, 8, NULL, TRUE, 'ADMIN'),
+('UGR/1009/18', 'Lamecha', 'Girma', 4, 'CAFE', NULL, 5, 9, 'MC-10005', TRUE, 'ADMIN'),
+('UGR/1010/18', 'Letesenbet', 'Gidey', 2, 'NON_CAFE', '1000998877665', 6, 10, NULL, TRUE, 'ADMIN');
 
 -- App Users (For Auth - linking to some students)
 INSERT INTO app_user (username, password_hash, role, student_id) VALUES

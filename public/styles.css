@@ -292,6 +292,35 @@ pre {
 .status-pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 .status-failed { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
+.profile-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.profile-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-item strong {
+  color: var(--aau-accent);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.profile-item div {
+  color: var(--aau-text);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
 /* Menu Grid */
 .menu-grid {
   display: grid;

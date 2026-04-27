@@ -10,8 +10,6 @@ const adminLogoutBtn = document.getElementById("adminLogoutBtn");
 const monthlyReportForm = document.getElementById("monthlyReportForm");
 const monthlyReportBox = document.getElementById("monthlyReportBox");
 const auditLogList = document.getElementById("auditLogList");
-const menuForm = document.getElementById("menuForm");
-const menuList = document.getElementById("menuList");
 const feedbackAdminList = document.getElementById("feedbackAdminList");
 
 let authToken = localStorage.getItem("admin_token") || "";
@@ -35,35 +33,6 @@ async function fetchJSON(url, options = {}) {
     throw new Error(data.error || "Request failed");
   }
   return data;
-}
-
-async function loadMenu() {
-  const data = await fetchJSON("/api/menu");
-  if (data.data.length === 0) {
-    menuList.innerHTML = "<li>No menu items added.</li>";
-    return;
-  }
-  menuList.innerHTML = data.data
-    .map(
-      (item) => `<li style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
-        <strong>${item.item_name}</strong> (${item.category}) - ${item.price} ETB
-        <br/><small>${item.description || ""}</small>
-        <br/><button class="inline-btn" style="background: #f44336; margin-top: 5px;" onclick="toggleAvailability(${item.item_id}, ${!item.is_available})">${item.is_available ? 'Disable' : 'Enable'}</button>
-      </li>`
-    )
-    .join("");
-}
-
-async function toggleAvailability(itemId, status) {
-  try {
-    await fetchJSON(`/api/admin/menu/${itemId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ is_available: status }),
-    });
-    await loadMenu();
-  } catch (error) {
-    alert(error.message);
-  }
 }
 
 async function loadPendingStudents() {
@@ -139,7 +108,6 @@ async function confirmStipend(transactionId) {
 async function refreshAdminData() {
   if (!authToken) return;
   await Promise.all([
-    loadMenu(),
     loadPendingStudents(),
     loadNonCafeApprovedStudents(),
     loadPendingStipends(),
@@ -252,23 +220,6 @@ adminLoginForm.addEventListener("submit", async (event) => {
   }
 });
 
-menuForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const formData = new FormData(menuForm);
-  const payload = Object.fromEntries(formData.entries());
-  payload.price = Number(payload.price);
-  try {
-    await fetchJSON("/api/admin/menu", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    menuForm.reset();
-    await loadMenu();
-  } catch (error) {
-    alert(error.message);
-  }
-});
-
 monthlyReportForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(monthlyReportForm);
@@ -284,6 +235,17 @@ stipendForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(stipendForm);
   const payload = Object.fromEntries(formData.entries());
+
+  if (payload.stipend_month) {
+    if (/^\d{4}-\d{2}$/.test(payload.stipend_month)) {
+      payload.stipend_month = `${payload.stipend_month}-01`;
+    } else {
+      const date = new Date(payload.stipend_month);
+      if (!Number.isNaN(date.getTime())) {
+        payload.stipend_month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+      }
+    }
+  }
 
   try {
     await fetchJSON("/api/admin/stipends", {
@@ -304,7 +266,6 @@ adminLogoutBtn.addEventListener("click", () => {
   localStorage.removeItem("admin_token");
   localStorage.removeItem("aau_token");
   adminMessage.textContent = "Logged out.";
-  menuList.innerHTML = "<li>Login as admin to load data.</li>";
   pendingStudents.innerHTML = "<li>Login as admin to load data.</li>";
   pendingStipends.innerHTML = "<li>Login as admin to load data.</li>";
   monthlyReportBox.textContent = "Login and choose month to view report.";
@@ -313,7 +274,6 @@ adminLogoutBtn.addEventListener("click", () => {
 
 window.approveStudent = approveStudent;
 window.confirmStipend = confirmStipend;
-window.toggleAvailability = toggleAvailability;
 window.updateFeedback = updateFeedback;
 
 if (authToken) {

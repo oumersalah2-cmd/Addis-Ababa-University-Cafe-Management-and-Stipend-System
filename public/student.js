@@ -5,12 +5,14 @@ const studentLogoutBtn = document.getElementById("studentLogoutBtn");
 const loginUsernameInput = studentLoginForm.querySelector('input[name="username"]');
 
 const portalContent = document.getElementById("portalContent");
+const approvalMessage = document.getElementById("approvalMessage");
 const nonCafePaymentsCard = document.getElementById("nonCafePaymentsCard");
 const paymentTracker = document.getElementById("paymentTracker");
 const feedbackForm = document.getElementById("feedbackForm");
 const feedbackMessage = document.getElementById("feedbackMessage");
 const feedbackList = document.getElementById("feedbackList");
 const feedbackCategory = document.getElementById("feedbackCategory");
+const notificationList = document.getElementById("notificationList");
 
 // Intentionally do NOT auto-restore sessions on shared PCs/labs.
 // User must login explicitly each time.
@@ -98,6 +100,51 @@ async function loadMyFeedback() {
   }
 }
 
+function renderNotifications(notifications) {
+  if (!notificationList) return;
+  if (!notifications.length) {
+    notificationList.innerHTML = "<li>No notifications yet.</li>";
+    return;
+  }
+  notificationList.innerHTML = notifications
+    .map((n) => {
+      const unreadClass = n.is_read ? "" : "font-weight: bold; background: rgba(255, 193, 7, 0.1);";
+      return `<li style="${unreadClass}">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+          <strong>${n.title}</strong>
+          ${!n.is_read ? '<span style="color: #ffc107;">●</span>' : ''}
+        </div>
+        <div style="margin-top:8px;">${n.message}</div>
+        <div style="margin-top:8px;color:rgba(255,255,255,0.6);font-size:0.85rem;">
+          ${String(n.created_at).replace("T", " ").slice(0, 16)}
+        </div>
+        ${!n.is_read ? '<button class="inline-btn" style="margin-top: 8px;" onclick="markAsRead(' + n.notification_id + ')">Mark as Read</button>' : ''}
+      </li>`;
+    })
+    .join("");
+}
+
+async function loadNotifications() {
+  if (!authToken) return;
+  try {
+    const data = await fetchJSON("/api/students/notifications");
+    renderNotifications(data.data);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function markAsRead(notificationId) {
+  try {
+    await fetchJSON(`/api/students/notifications/${notificationId}/read`, {
+      method: "PATCH",
+    });
+    await loadNotifications();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
 function buildSepToJunMonths() {
   const now = new Date();
   const year = now.getFullYear();
@@ -170,32 +217,75 @@ async function loadMyData() {
   const p = data.data.profile;
   if (portalContent) portalContent.style.display = "block";
 
-  profileBox.textContent = JSON.stringify(
-    {
-      student_id: p.student_id,
-      full_name: `${p.first_name} ${p.last_name}`,
-      department: p.dept_name,
-      year_of_study: p.year_of_study,
-      cafe_status: p.cafe_status,
-      approved: p.is_approved,
-      dorm: p.block_name && p.dorm_number ? `${p.block_name}-${p.dorm_number}` : null,
-      meal_card_number: p.meal_card_number || null,
-    },
-    null,
-    2
-  );
+  profileBox.innerHTML = `
+    <div class="profile-item">
+      <strong>Student ID</strong>
+      <div>${p.student_id}</div>
+    </div>
+    <div class="profile-item">
+      <strong>Full Name</strong>
+      <div>${p.first_name} ${p.last_name}</div>
+    </div>
+    <div class="profile-item">
+      <strong>Department</strong>
+      <div>${p.dept_name}</div>
+    </div>
+    <div class="profile-item">
+      <strong>Year of Study</strong>
+      <div>${p.year_of_study}</div>
+    </div>
+    <div class="profile-item">
+      <strong>Cafe Status</strong>
+      <div>${p.cafe_status}</div>
+    </div>
+    <div class="profile-item">
+      <strong>Approved</strong>
+      <div>${p.is_approved ? 'Yes' : 'No'}</div>
+    </div>
+    ${p.block_name && p.dorm_number ? `
+    <div class="profile-item">
+      <strong>Dorm</strong>
+      <div>${p.block_name}-${p.dorm_number}</div>
+    </div>
+    ` : ''}
+    ${p.meal_card_number ? `
+    <div class="profile-item">
+      <strong>Meal Card Number</strong>
+      <div>${p.meal_card_number}</div>
+    </div>
+    ` : ''}
+  `;
+
+  if (approvalMessage) {
+    if (!p.is_approved) {
+      approvalMessage.textContent =
+        "Your registration is still pending admin approval. Once approved, your portal will display your full profile and stipend status.";
+      approvalMessage.style.color = "#f59e0b";
+      studentLoginMessage.textContent = "Your account is pending approval. Please wait for admin confirmation.";
+    } else {
+      approvalMessage.textContent = "Your account is approved. Welcome to the student portal!";
+      approvalMessage.style.color = "#10b981";
+      studentLoginMessage.textContent = `Welcome back ${p.first_name}!`;
+    }
+  }
 
   if (feedbackCategory) {
     feedbackCategory.value = p.cafe_status === "CAFE" ? "FOOD" : "PAYMENT";
   }
   if (nonCafePaymentsCard) {
-    nonCafePaymentsCard.style.display = p.cafe_status === "NON_CAFE" ? "block" : "none";
+    nonCafePaymentsCard.style.display = p.cafe_status === "NON_CAFE" && p.is_approved ? "block" : "none";
   }
 
-  if (p.cafe_status === "NON_CAFE") {
+  if (p.cafe_status === "NON_CAFE" && p.is_approved) {
     renderPaymentTracker(data.data.stipend_history || []);
   }
+
+  if (feedbackForm) {
+    feedbackForm.style.display = p.is_approved ? "grid" : "none";
+  }
+
   loadMyFeedback();
+  loadNotifications();
 }
 
 studentLoginForm.addEventListener("submit", async (event) => {
@@ -243,6 +333,7 @@ studentLogoutBtn.addEventListener("click", () => {
   if (portalContent) portalContent.style.display = "none";
   profileBox.textContent = "Loading...";
   if (feedbackList) feedbackList.innerHTML = "<li>Loading...</li>";
+  if (notificationList) notificationList.innerHTML = "<li>Loading notifications...</li>";
 });
 
 // No session restore by design.
@@ -256,4 +347,6 @@ if (params.get("registered") === "1") {
   studentLoginMessage.textContent =
     "Registration successful. Please login to view your account and payment status.";
 }
+
+window.markAsRead = markAsRead;
 

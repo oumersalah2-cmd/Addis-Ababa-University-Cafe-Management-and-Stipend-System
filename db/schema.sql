@@ -30,6 +30,7 @@ CREATE TYPE meal_type_enum AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER');
 CREATE TYPE stipend_status_enum AS ENUM ('PENDING', 'PAID', 'FAILED');
 CREATE TYPE feedback_category_enum AS ENUM ('FOOD', 'PAYMENT');
 CREATE TYPE feedback_status_enum AS ENUM ('OPEN', 'IN_REVIEW', 'RESOLVED');
+CREATE TYPE registered_by_enum AS ENUM ('SELF', 'ADMIN');
 
 -- 2. Department Table
 CREATE TABLE department (
@@ -58,6 +59,7 @@ CREATE TABLE student (
     meal_card_number VARCHAR(20) UNIQUE,
     registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_approved BOOLEAN NOT NULL DEFAULT FALSE,
+    registered_by registered_by_enum NOT NULL DEFAULT 'SELF',
     -- Constraint: Students cannot have both Cafe and Stipend status at the same time in theory,
     -- but here we use the cafe_status flag.
     -- Strict rule: Non-cafe students MUST have a bank account for stipend.
@@ -96,6 +98,16 @@ CREATE TABLE admin_audit_log (
     target_student_id VARCHAR(20),
     target_transaction_id BIGINT,
     details TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Student Notifications
+CREATE TABLE student_notification (
+    notification_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id VARCHAR(20) NOT NULL REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    title VARCHAR(100) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
