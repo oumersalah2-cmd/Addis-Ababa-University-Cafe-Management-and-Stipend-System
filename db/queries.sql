@@ -1,90 +1,198 @@
--- AAU Cafe Management System: 10 Complex Business Queries
+-- ============================================================
+-- AAU Café Management & Stipend System — SQL Queries
+-- 10 Required Queries + Bonus (covering all JOIN types,
+-- GROUP BY, subqueries, aggregation, DML, window functions)
+-- ============================================================
 
--- 1. INSERT: Register a new student and assign them to a dormitory
--- Problem: Efficiently onboarding new students with their living arrangements.
-INSERT INTO dormitory (block_name, dorm_number)
-VALUES ('A', 'A-999')
-ON CONFLICT (block_name, dorm_number) DO NOTHING;
 
-INSERT INTO student (student_id, first_name, last_name, year_of_study, cafe_status, bank_account_number, dept_id, dorm_id, meal_card_number)
-VALUES ('UGR/5555/18', 'Solomon', 'Tekle', 1, 'CAFE', NULL, 1,
-        (SELECT dorm_id FROM dormitory WHERE block_name = 'A' AND dorm_number = 'A-999'),
-        'MC-555555');
+-- ============================================================
+-- Query 1 — Café Attendance with Student & Meal Details
+-- Type: INNER JOIN
+-- ============================================================
+SELECT s.first_name || ' ' || s.last_name AS student_name,
+       m.item_name, a.meal_type, a.meal_date
+FROM Meal_Attendance a
+    INNER JOIN Students s ON a.student_id = s.student_id
+    INNER JOIN Menus    m ON a.menu_id    = m.menu_id
+ORDER BY a.meal_date DESC, a.meal_type;
 
--- 2. UPDATE: Change student status from CAFE to NON_CAFE
--- Problem: A student wants to switch to receiving money instead of eating at the cafe.
--- This requires adding a bank account and updating the status.
-UPDATE student 
-SET cafe_status = 'NON_CAFE', 
-    bank_account_number = '1000777888999'
-WHERE student_id = 'UGR/1001/18';
 
--- 3. DELETE: Remove meal logs older than 1 year
--- Problem: Database maintenance to keep the meal_log table from growing indefinitely.
-DELETE FROM meal_log 
-WHERE date_time < CURRENT_TIMESTAMP - INTERVAL '1 year';
+-- ============================================================
+-- Query 2 — All Students with Their Cash Payment Status
+-- Type: LEFT JOIN
+-- ============================================================
+SELECT s.first_name || ' ' || s.last_name AS student_name,
+       d.department_name,
+       cp.payment_month, cp.payment_year,
+       COALESCE(cp.status::TEXT, 'NO RECORD') AS payment_status,
+       cp.sent_at
+FROM Students s
+    LEFT JOIN Departments   d  ON s.department_id  = d.department_id
+    LEFT JOIN Cash_Payments cp ON s.student_id     = cp.student_id
+                               AND cp.payment_month = EXTRACT(MONTH FROM NOW())
+                               AND cp.payment_year  = EXTRACT(YEAR  FROM NOW())
+WHERE s.student_type = 'NON_CAFE'
+  AND s.is_approved  = TRUE
+ORDER BY cp.status NULLS LAST, s.last_name;
 
--- 4. INNER JOIN: List all CAFE students with their Department and Dorm details
--- Problem: Generating a daily list for the kitchen staff to verify eligible students.
-SELECT s.student_id, s.first_name, s.last_name, s.meal_card_number, d.dept_name, dr.block_name, dr.dorm_number
-FROM student s
-INNER JOIN department d ON s.dept_id = d.dept_id
-INNER JOIN dormitory dr ON s.dorm_id = dr.dorm_id
-WHERE s.cafe_status = 'CAFE' AND s.is_approved = TRUE;
 
--- 5. LEFT JOIN: Identify students who haven't received their stipend for a specific month
--- Problem: Finance office needs to find "NON_CAFE" students missing their monthly payment.
-SELECT s.student_id, s.first_name, s.last_name, st.amount, st.status
-FROM student s
-LEFT JOIN stipend_transaction st ON s.student_id = st.student_id AND st.stipend_month = '2026-04-01'
-WHERE s.cafe_status = 'NON_CAFE' AND st.transaction_id IS NULL;
+-- ============================================================
+-- Query 3 — All Menus and Their Attendance Counts
+-- Type: RIGHT JOIN
+-- ============================================================
+SELECT m.item_name, m.meal_type,
+       COUNT(a.attendance_id)        AS total_ticks,
+       COUNT(DISTINCT a.student_id)  AS unique_students
+FROM Meal_Attendance a
+    RIGHT JOIN Menus m ON a.menu_id = m.menu_id
+GROUP BY m.menu_id, m.item_name, m.meal_type
+ORDER BY total_ticks DESC;
 
--- 6. RIGHT JOIN: Show all departments and the count of students in each (including empty ones)
--- Problem: Academic planning needs to see student distribution across all departments.
-SELECT d.dept_name, COUNT(s.student_id) as student_count
-FROM student s
-RIGHT JOIN department d ON s.dept_id = d.dept_id
-GROUP BY d.dept_name;
 
--- 7. FULL OUTER JOIN: Audit between student records and stipend transactions
--- Problem: Finding orphans (transactions without students) or students without any transaction history.
-SELECT s.student_id, s.first_name, st.transaction_id, st.stipend_month
-FROM student s
-FULL OUTER JOIN stipend_transaction st ON s.student_id = st.student_id
-WHERE s.student_id IS NULL OR st.transaction_id IS NULL;
+-- ============================================================
+-- Query 4 — Data Integrity Check: Orphan Records
+-- Type: FULL OUTER JOIN
+-- ============================================================
+SELECT s.first_name || ' ' || s.last_name AS student_name,
+       s.student_type, cp.payment_id, cp.status
+FROM Students s
+    FULL OUTER JOIN Cash_Payments cp ON s.student_id = cp.student_id
+WHERE s.student_id IS NULL OR cp.payment_id IS NULL
+ORDER BY s.student_type;
 
--- 8. INNER JOIN + GROUP BY: Total meals served per department today
--- Problem: Kitchen manager needs to know which departments are the "heaviest" users for resource allocation.
-SELECT d.dept_name, COUNT(ml.log_id) as total_meals
-FROM meal_log ml
-INNER JOIN student s ON ml.student_id = s.student_id
-INNER JOIN department d ON s.dept_id = d.dept_id
-WHERE ml.date_time::date = CURRENT_DATE
-GROUP BY d.dept_name
-ORDER BY total_meals DESC;
 
--- 9. JOIN + Subquery: Find CAFE students who have NOT eaten any meal today
--- Problem: Proactive identification of students who might be missing meals for health or welfare checks.
-SELECT s.student_id, s.first_name, s.last_name
-FROM student s
-WHERE s.cafe_status = 'CAFE' 
-AND s.student_id NOT IN (
-    SELECT student_id 
-    FROM meal_log 
-    WHERE date_time::date = CURRENT_DATE
-);
+-- ============================================================
+-- Query 5 — Monthly Payment Summary by Department
+-- Type: GROUP BY + Aggregation
+-- ============================================================
+SELECT d.department_name,
+       COUNT(cp.payment_id)                          AS total_payments,
+       SUM(cp.amount)                                AS total_amount_sent,
+       COUNT(*) FILTER (WHERE cp.status = 'PENDING') AS pending_count,
+       COUNT(*) FILTER (WHERE cp.status = 'SENT')    AS sent_count
+FROM Cash_Payments cp
+    INNER JOIN Students    s ON cp.student_id   = s.student_id
+    INNER JOIN Departments d ON s.department_id = d.department_id
+WHERE cp.payment_year = EXTRACT(YEAR FROM NOW())
+GROUP BY d.department_name
+ORDER BY total_amount_sent DESC;
 
--- 10. Multi-Join Complex Report: Comprehensive Admin Student Dossier
--- Problem: Admin needs a full view of a student's status, including their last meal and total stipend received.
-SELECT 
-    s.student_id, 
-    s.first_name || ' ' || s.last_name as full_name,
-    d.dept_name,
-    dr.block_name || '-' || dr.dorm_number as dorm_info,
-    (SELECT MAX(date_time) FROM meal_log WHERE student_id = s.student_id) as last_meal_time,
-    COALESCE(SUM(st.amount), 0) as total_stipend_paid
-FROM student s
-JOIN department d ON s.dept_id = d.dept_id
-JOIN dormitory dr ON s.dorm_id = dr.dorm_id
-LEFT JOIN stipend_transaction st ON s.student_id = st.student_id AND st.status = 'PAID'
-GROUP BY s.student_id, s.first_name, s.last_name, d.dept_name, dr.block_name, dr.dorm_number;
+
+-- ============================================================
+-- Query 6 — Students Who Have NOT Been Paid This Month
+-- Type: Subquery
+-- ============================================================
+SELECT s.first_name || ' ' || s.last_name AS student_name,
+       s.email, d.department_name
+FROM Students s
+    LEFT JOIN Departments d ON s.department_id = d.department_id
+WHERE s.student_type = 'NON_CAFE'
+  AND s.is_approved  = TRUE
+  AND s.student_id NOT IN (
+      SELECT student_id FROM Cash_Payments
+      WHERE payment_month = EXTRACT(MONTH FROM NOW())
+        AND payment_year  = EXTRACT(YEAR  FROM NOW())
+        AND status = 'SENT'
+  )
+ORDER BY d.department_name, s.last_name;
+
+
+-- ============================================================
+-- Query 7 — Daily Café Attendance Dashboard
+-- Type: Real-Time Query
+-- ============================================================
+SELECT meal_type,
+       COUNT(DISTINCT student_id) AS students_attended,
+       COUNT(attendance_id)       AS total_ticks
+FROM Meal_Attendance
+WHERE meal_date = CURRENT_DATE
+GROUP BY meal_type
+ORDER BY CASE meal_type
+             WHEN 'BREAKFAST' THEN 1
+             WHEN 'LUNCH'     THEN 2
+             WHEN 'DINNER'    THEN 3
+         END;
+
+
+-- ============================================================
+-- Query 8 — Confirm and Mark Payment as Sent
+-- Type: UPDATE (DML)
+-- ============================================================
+
+-- Step 1: Confirm payment
+UPDATE Cash_Payments
+SET    status       = 'CONFIRMED',
+       confirmed_by = 1,
+       confirmed_at = NOW()
+WHERE  student_id    = 2
+  AND  payment_month = EXTRACT(MONTH FROM NOW())
+  AND  payment_year  = EXTRACT(YEAR  FROM NOW());
+
+-- Step 2: Mark as sent (money transferred)
+UPDATE Cash_Payments
+SET    status  = 'SENT',
+       sent_at = NOW()
+WHERE  student_id    = 2
+  AND  payment_month = EXTRACT(MONTH FROM NOW())
+  AND  payment_year  = EXTRACT(YEAR  FROM NOW());
+
+
+-- ============================================================
+-- Query 9 — Bulk Insert Monthly Payments + Audit Log
+-- Type: INSERT (DML)
+-- ============================================================
+
+-- Step 1: Insert payment records for all eligible students
+INSERT INTO Cash_Payments (student_id, amount, payment_month, payment_year, status)
+SELECT student_id, 3000.00,
+       EXTRACT(MONTH FROM NOW()),
+       EXTRACT(YEAR  FROM NOW()),
+       'PENDING'
+FROM Students
+WHERE student_type = 'NON_CAFE'
+  AND is_approved  = TRUE
+ON CONFLICT (student_id, payment_month, payment_year) DO NOTHING;
+
+-- Step 2: Log the bulk insert
+INSERT INTO Audit_Logs (actor_id, actor_type, action, target_table, new_value, logged_at)
+VALUES (1, 'ADMIN', 'INSERT', 'Cash_Payments',
+        'Bulk monthly payment records created for NON_CAFE students', NOW());
+
+
+-- ============================================================
+-- Query 10 — Year-by-Year Student Summary Report
+-- Type: Analytics
+-- ============================================================
+SELECT year_enrolled,
+       COUNT(*) FILTER (WHERE student_type = 'CAFE')     AS cafe_users,
+       COUNT(*) FILTER (WHERE student_type = 'NON_CAFE') AS non_cafe_users,
+       COUNT(*)                                           AS total_students,
+       ROUND(COUNT(*) FILTER (WHERE student_type = 'CAFE')::NUMERIC
+             / COUNT(*) * 100, 1)                        AS cafe_pct
+FROM Students
+WHERE is_approved = TRUE
+GROUP BY year_enrolled
+ORDER BY year_enrolled DESC;
+
+
+-- ============================================================
+-- Bonus Query — Full Student Payment History
+-- Type: Multi-Year Analytics with Window Functions
+-- ============================================================
+SELECT s.first_name || ' ' || s.last_name AS student_name,
+       d.department_name,
+       cp.payment_year,
+       COUNT(cp.payment_id)                         AS months_recorded,
+       SUM(cp.amount)                               AS total_received,
+       COUNT(*) FILTER (WHERE cp.status = 'SENT')    AS months_paid,
+       COUNT(*) FILTER (WHERE cp.status = 'PENDING') AS months_pending,
+       RANK() OVER (
+           PARTITION BY cp.payment_year
+           ORDER BY SUM(cp.amount) DESC
+       ) AS rank_by_year
+FROM Cash_Payments cp
+    INNER JOIN Students    s ON cp.student_id   = s.student_id
+    INNER JOIN Departments d ON s.department_id = d.department_id
+GROUP BY s.student_id, s.first_name, s.last_name,
+         d.department_name, cp.payment_year
+ORDER BY cp.payment_year DESC, rank_by_year;

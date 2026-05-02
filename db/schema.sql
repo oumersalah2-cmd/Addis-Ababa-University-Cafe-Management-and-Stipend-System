@@ -1,183 +1,186 @@
--- AAU Cafe Management and Stipend System Schema
--- Designed for Addis Ababa University
+-- ============================================================
+-- AAU Café Management & Stipend System — Database Schema
+-- Addis Ababa University · 5 Kilo Campus
+-- Fundamentals of Database · Group Project 2026
+-- ============================================================
 
--- Drop tables in reverse order of dependencies
-DROP TABLE IF EXISTS order_item;
-DROP TABLE IF EXISTS cafe_order;
-DROP TABLE IF EXISTS menu_item;
-DROP TABLE IF EXISTS stipend_transaction;
-DROP TABLE IF EXISTS meal_log;
-DROP TABLE IF EXISTS student_feedback;
-DROP TABLE IF EXISTS admin_audit_log;
-DROP TABLE IF EXISTS app_user;
-DROP TABLE IF EXISTS student;
-DROP TABLE IF EXISTS dormitory;
-DROP TABLE IF EXISTS department;
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS Audit_Logs CASCADE;
+DROP TABLE IF EXISTS Cash_Payments CASCADE;
+DROP TABLE IF EXISTS Meal_Attendance CASCADE;
+DROP TABLE IF EXISTS Menus CASCADE;
+DROP TABLE IF EXISTS Students CASCADE;
+DROP TABLE IF EXISTS Admins CASCADE;
+DROP TABLE IF EXISTS Dormitories CASCADE;
+DROP TABLE IF EXISTS Departments CASCADE;
+-- Drop any leftover tables from previous schema versions
+DROP TABLE IF EXISTS order_item CASCADE;
+DROP TABLE IF EXISTS cafe_order CASCADE;
+DROP TABLE IF EXISTS menu_item CASCADE;
+DROP TABLE IF EXISTS stipend_transaction CASCADE;
+DROP TABLE IF EXISTS meal_log CASCADE;
+DROP TABLE IF EXISTS student_feedback CASCADE;
+DROP TABLE IF EXISTS student_notification CASCADE;
+DROP TABLE IF EXISTS admin_audit_log CASCADE;
+DROP TABLE IF EXISTS app_user CASCADE;
+DROP TABLE IF EXISTS student CASCADE;
+DROP TABLE IF EXISTS dormitory CASCADE;
+DROP TABLE IF EXISTS department CASCADE;
 
--- Drop custom types
-DROP TYPE IF EXISTS order_status_enum;
-DROP TYPE IF EXISTS user_role_enum;
-DROP TYPE IF EXISTS cafe_status_enum;
-DROP TYPE IF EXISTS meal_type_enum;
-DROP TYPE IF EXISTS stipend_status_enum;
-DROP TYPE IF EXISTS feedback_category_enum;
-DROP TYPE IF EXISTS feedback_status_enum;
+-- Drop custom ENUM types
+DROP TYPE IF EXISTS student_type_enum CASCADE;
+DROP TYPE IF EXISTS meal_type_enum CASCADE;
+DROP TYPE IF EXISTS payment_status_enum CASCADE;
+DROP TYPE IF EXISTS admin_role_enum CASCADE;
+DROP TYPE IF EXISTS gender_enum CASCADE;
+-- Also drop any leftover types from previous schema versions
+DROP TYPE IF EXISTS user_role_enum CASCADE;
+DROP TYPE IF EXISTS cafe_status_enum CASCADE;
+DROP TYPE IF EXISTS stipend_status_enum CASCADE;
+DROP TYPE IF EXISTS feedback_category_enum CASCADE;
+DROP TYPE IF EXISTS feedback_status_enum CASCADE;
+DROP TYPE IF EXISTS registered_by_enum CASCADE;
+DROP TYPE IF EXISTS order_status_enum CASCADE;
 
--- Custom Types
-CREATE TYPE user_role_enum AS ENUM ('STUDENT', 'ADMIN');
-CREATE TYPE cafe_status_enum AS ENUM ('CAFE', 'NON_CAFE');
+-- ============================================================
+-- Custom ENUM Types
+-- ============================================================
+
+-- Student type (controls which system a student uses)
+CREATE TYPE student_type_enum AS ENUM ('CAFE', 'NON_CAFE');
+
+-- Meal type
 CREATE TYPE meal_type_enum AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER');
-CREATE TYPE stipend_status_enum AS ENUM ('PENDING', 'PAID', 'FAILED');
-CREATE TYPE feedback_category_enum AS ENUM ('FOOD', 'PAYMENT');
-CREATE TYPE feedback_status_enum AS ENUM ('OPEN', 'IN_REVIEW', 'RESOLVED');
-CREATE TYPE registered_by_enum AS ENUM ('SELF', 'ADMIN');
 
--- 2. Department Table
-CREATE TABLE department (
-    dept_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    dept_name VARCHAR(120) NOT NULL UNIQUE
+-- Cash payment status
+CREATE TYPE payment_status_enum AS ENUM ('PENDING', 'CONFIRMED', 'SENT');
+
+-- Admin role
+CREATE TYPE admin_role_enum AS ENUM ('SUPER_ADMIN', 'CAFE_MANAGER');
+
+-- Gender
+CREATE TYPE gender_enum AS ENUM ('Male', 'Female', 'Other');
+
+-- ============================================================
+-- 1. Departments
+-- ============================================================
+CREATE TABLE Departments (
+    department_id   SERIAL PRIMARY KEY,
+    department_name VARCHAR(120) NOT NULL UNIQUE,
+    college         VARCHAR(120)
 );
 
--- 3. Dormitory Table
-CREATE TABLE dormitory (
-    dorm_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    block_name CHAR(1) NOT NULL CHECK (block_name IN ('A', 'B')),
-    dorm_number VARCHAR(30) NOT NULL,
-    UNIQUE(block_name, dorm_number)
+-- ============================================================
+-- 2. Dormitories
+-- ============================================================
+CREATE TABLE Dormitories (
+    dormitory_id SERIAL PRIMARY KEY,
+    dorm_name    VARCHAR(100) NOT NULL,
+    block        VARCHAR(20),
+    gender_type  gender_enum,
+    total_rooms  INT CHECK (total_rooms > 0)
 );
 
--- 1. Student Table
-CREATE TABLE student (
-    student_id VARCHAR(20) PRIMARY KEY, -- AAU ID format e.g. UGR/1234/18
-    first_name VARCHAR(60) NOT NULL,
-    last_name VARCHAR(60) NOT NULL,
-    year_of_study INT NOT NULL CHECK (year_of_study BETWEEN 1 AND 7),
-    cafe_status cafe_status_enum NOT NULL,
-    bank_account_number VARCHAR(30),
-    dept_id INT NOT NULL REFERENCES department(dept_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    dorm_id INT REFERENCES dormitory(dorm_id) ON UPDATE CASCADE ON DELETE SET NULL,
-    meal_card_number VARCHAR(20) UNIQUE,
-    registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    is_approved BOOLEAN NOT NULL DEFAULT FALSE,
-    registered_by registered_by_enum NOT NULL DEFAULT 'SELF',
-    -- Constraint: Students cannot have both Cafe and Stipend status at the same time in theory,
-    -- but here we use the cafe_status flag.
-    -- Strict rule: Non-cafe students MUST have a bank account for stipend.
-    CHECK (
-        (cafe_status = 'NON_CAFE' AND bank_account_number IS NOT NULL)
-        OR
-        (cafe_status = 'CAFE' AND bank_account_number IS NULL)
-    ),
-    CHECK (
-        (cafe_status = 'CAFE' AND meal_card_number IS NOT NULL)
-        OR
-        (cafe_status = 'NON_CAFE' AND meal_card_number IS NULL)
-    )
+-- ============================================================
+-- 3. Students
+-- ============================================================
+CREATE TABLE Students (
+    student_id    SERIAL PRIMARY KEY,
+    first_name    VARCHAR(80)  NOT NULL,
+    last_name     VARCHAR(80)  NOT NULL,
+    email         VARCHAR(150) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    gender        gender_enum,
+    year_of_study INT CHECK (year_of_study BETWEEN 1 AND 5),
+    year_enrolled INT NOT NULL,
+    student_type  student_type_enum NOT NULL,
+    department_id INT REFERENCES Departments(department_id) ON DELETE SET NULL,
+    dormitory_id  INT REFERENCES Dormitories(dormitory_id) ON DELETE SET NULL,
+    is_approved   BOOLEAN DEFAULT FALSE,
+    created_at    TIMESTAMP DEFAULT NOW()
 );
 
--- User Table (for Auth)
-CREATE TABLE app_user (
-    user_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    username VARCHAR(60) NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    role user_role_enum NOT NULL,
-    student_id VARCHAR(20) UNIQUE REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE CASCADE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CHECK (
-        (role = 'STUDENT' AND student_id IS NOT NULL)
-        OR
-        (role = 'ADMIN' AND student_id IS NULL)
-    )
+CREATE INDEX idx_students_dept ON Students(department_id);
+CREATE INDEX idx_students_type ON Students(student_type);
+
+-- ============================================================
+-- 4. Admins
+-- ============================================================
+CREATE TABLE Admins (
+    admin_id      SERIAL PRIMARY KEY,
+    full_name     VARCHAR(150) NOT NULL,
+    email         VARCHAR(150) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role          admin_role_enum DEFAULT 'CAFE_MANAGER',
+    last_login    TIMESTAMP,
+    is_active     BOOLEAN DEFAULT TRUE
 );
 
--- Admin Audit Log
-CREATE TABLE admin_audit_log (
-    audit_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    admin_user_id BIGINT NOT NULL REFERENCES app_user(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    action_type VARCHAR(40) NOT NULL,
-    target_student_id VARCHAR(20),
-    target_transaction_id BIGINT,
-    details TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- ============================================================
+-- 5. Menus
+-- ============================================================
+CREATE TABLE Menus (
+    menu_id      SERIAL PRIMARY KEY,
+    item_name    VARCHAR(120) NOT NULL,
+    description  TEXT,
+    meal_type    meal_type_enum NOT NULL,
+    price        NUMERIC(8,2) NOT NULL CHECK (price >= 0),
+    is_available BOOLEAN DEFAULT TRUE
 );
 
--- Student Notifications
-CREATE TABLE student_notification (
-    notification_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    student_id VARCHAR(20) NOT NULL REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE CASCADE,
-    title VARCHAR(100) NOT NULL,
-    message TEXT NOT NULL,
-    is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- ============================================================
+-- 6. Meal_Attendance (replaces paper tick register)
+-- ============================================================
+CREATE TABLE Meal_Attendance (
+    attendance_id SERIAL PRIMARY KEY,
+    student_id    INT NOT NULL REFERENCES Students(student_id) ON DELETE CASCADE,
+    menu_id       INT NOT NULL REFERENCES Menus(menu_id) ON DELETE RESTRICT,
+    meal_date     DATE NOT NULL DEFAULT CURRENT_DATE,
+    meal_type     meal_type_enum NOT NULL,
+    recorded_at   TIMESTAMP DEFAULT NOW()
 );
 
--- 4. Meal_Log Table
-CREATE TABLE meal_log (
-    log_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    student_id VARCHAR(20) NOT NULL REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    date_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    meal_type meal_type_enum NOT NULL
-);
--- Business Rule: A student can only log a specific meal once per day
-CREATE UNIQUE INDEX uq_meal_per_student_per_day ON meal_log (student_id, (date_time::date), meal_type);
+-- Prevent one student ticking in twice for the same meal on the same day
+CREATE UNIQUE INDEX one_tick_per_meal
+    ON Meal_Attendance (student_id, meal_date, meal_type);
 
--- Student feedback / complaints (food or payment) with optional photo
-CREATE TABLE student_feedback (
-    feedback_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    student_id VARCHAR(20) NOT NULL REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    category feedback_category_enum NOT NULL,
-    message TEXT NOT NULL,
-    photo_path TEXT,
-    status feedback_status_enum NOT NULL DEFAULT 'OPEN',
-    admin_note TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+CREATE INDEX idx_attendance_student ON Meal_Attendance(student_id);
+CREATE INDEX idx_attendance_date    ON Meal_Attendance(meal_date);
 
--- 5. Stipend_Transaction Table
-CREATE TABLE stipend_transaction (
-    transaction_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    student_id VARCHAR(20) NOT NULL REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    stipend_month DATE NOT NULL, -- Stored as first day of month
-    amount NUMERIC(12, 2) NOT NULL DEFAULT 3000.00 CHECK (amount = 3000.00),
-    status stipend_status_enum NOT NULL DEFAULT 'PENDING',
-    processed_at TIMESTAMP,
-    confirmed_at TIMESTAMP,
-    confirmed_by_user BIGINT REFERENCES app_user(user_id),
-    -- Business Rule: Only one stipend transaction per month per student
-    UNIQUE (student_id, stipend_month),
-    -- Business Rule: Only non-cafe students can have stipend transactions (handled at application level or trigger)
-    CHECK (date_trunc('month', stipend_month) = stipend_month)
+-- ============================================================
+-- 7. Cash_Payments (monthly 3,000 ETB for non-café students)
+-- ============================================================
+CREATE TABLE Cash_Payments (
+    payment_id    SERIAL PRIMARY KEY,
+    student_id    INT NOT NULL REFERENCES Students(student_id) ON DELETE CASCADE,
+    amount        NUMERIC(10,2) NOT NULL DEFAULT 3000.00 CHECK (amount > 0),
+    payment_month INT NOT NULL CHECK (payment_month BETWEEN 1 AND 12),
+    payment_year  INT NOT NULL,
+    status        payment_status_enum DEFAULT 'PENDING',
+    confirmed_by  INT REFERENCES Admins(admin_id) ON DELETE SET NULL,
+    confirmed_at  TIMESTAMP,
+    sent_at       TIMESTAMP
 );
 
--- 6. Menu Table
-CREATE TABLE menu_item (
-    item_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    item_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    price NUMERIC(10, 2) NOT NULL DEFAULT 0.00, -- 0 for cafe students
-    is_available BOOLEAN NOT NULL DEFAULT TRUE,
-    category VARCHAR(50) CHECK (category IN ('Breakfast', 'Lunch', 'Dinner', 'Snack', 'Drink'))
+-- One payment record per student per month per year
+CREATE UNIQUE INDEX one_payment_per_month
+    ON Cash_Payments (student_id, payment_month, payment_year);
+
+-- ============================================================
+-- 8. Audit_Logs (immutable action log)
+-- ============================================================
+CREATE TABLE Audit_Logs (
+    log_id       SERIAL PRIMARY KEY,
+    actor_id     INT,
+    actor_type   VARCHAR(20) CHECK (actor_type IN ('STUDENT','ADMIN')),
+    action       VARCHAR(20) CHECK (action IN ('INSERT','UPDATE','DELETE')),
+    target_table VARCHAR(60),
+    target_id    INT,
+    old_value    TEXT,
+    new_value    TEXT,
+    logged_at    TIMESTAMP DEFAULT NOW()
 );
 
--- 7. Order Table (Real-time tracking)
-CREATE TYPE order_status_enum AS ENUM ('PENDING', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED');
-
-CREATE TABLE cafe_order (
-    order_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    student_id VARCHAR(20) NOT NULL REFERENCES student(student_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    order_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status order_status_enum NOT NULL DEFAULT 'PENDING',
-    total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
-    is_cafe_meal BOOLEAN NOT NULL DEFAULT TRUE -- TRUE if using daily meal entitlement
-);
-
--- 8. Order Items
-CREATE TABLE order_item (
-    order_item_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    order_id BIGINT NOT NULL REFERENCES cafe_order(order_id) ON UPDATE CASCADE ON DELETE CASCADE,
-    item_id INT NOT NULL REFERENCES menu_item(item_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    quantity INT NOT NULL CHECK (quantity > 0)
-);
-
-
+-- Prevent any modification to the audit log
+CREATE RULE no_update_audit AS ON UPDATE TO Audit_Logs DO INSTEAD NOTHING;
+CREATE RULE no_delete_audit AS ON DELETE TO Audit_Logs DO INSTEAD NOTHING;

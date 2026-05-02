@@ -1,14 +1,5 @@
 node_modules/
 .env
-.env.*
-!.env.example
-dist/
-build/
-coverage/
-.DS_Store
-Thumbs.db
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.idea/
-.vscode/
+.cursor/
+public/uploads/*
+!public/uploads/.gitkeep

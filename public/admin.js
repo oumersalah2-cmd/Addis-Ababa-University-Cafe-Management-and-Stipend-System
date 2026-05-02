@@ -1,287 +1,193 @@
-const pendingStudents = document.getElementById("pendingStudents");
-const refreshAdmin = document.getElementById("refreshAdmin");
 const adminLoginForm = document.getElementById("adminLoginForm");
 const adminMessage = document.getElementById("adminMessage");
-const nonCafeStudents = document.getElementById("nonCafeStudents");
-const stipendForm = document.getElementById("stipendForm");
-const stipendMessage = document.getElementById("stipendMessage");
-const pendingStipends = document.getElementById("pendingStipends");
 const adminLogoutBtn = document.getElementById("adminLogoutBtn");
-const monthlyReportForm = document.getElementById("monthlyReportForm");
-const monthlyReportBox = document.getElementById("monthlyReportBox");
+const pendingStudents = document.getElementById("pendingStudents");
+const nonCafeStudents = document.getElementById("nonCafeStudents");
+const paymentForm = document.getElementById("paymentForm");
+const paymentMessage = document.getElementById("paymentMessage");
+const pendingPayments = document.getElementById("pendingPayments");
+const reportBox = document.getElementById("reportBox");
+const loadReportBtn = document.getElementById("loadReportBtn");
 const auditLogList = document.getElementById("auditLogList");
-const feedbackAdminList = document.getElementById("feedbackAdminList");
+const statsRow = document.getElementById("statsRow");
+const adminPanel = document.getElementById("adminPanel");
 
 let authToken = localStorage.getItem("admin_token") || "";
 
 async function fetchJSON(url, options = {}) {
   const headers = { "Content-Type": "application/json" };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
-  const response = await fetch(url, {
-    headers,
-    ...options,
-  });
-  const contentType = response.headers.get("content-type") || "";
+  const response = await fetch(url, { headers, ...options });
+  const ct = response.headers.get("content-type") || "";
   let data;
-  if (contentType.includes("application/json")) {
-    data = await response.json();
-  } else {
-    await response.text();
-    throw new Error("Server returned invalid response. Please restart backend and refresh.");
-  }
-  if (!response.ok || !data.ok) {
-    throw new Error(data.error || "Request failed");
-  }
+  if (ct.includes("application/json")) data = await response.json();
+  else { await response.text(); throw new Error("Server returned invalid response."); }
+  if (!response.ok || !data.ok) throw new Error(data.error || "Request failed");
   return data;
 }
 
+function showMsg(el, text, isError = true) {
+  el.textContent = text;
+  el.className = "message " + (isError ? "msg-error" : "msg-success");
+}
+
+// Tab switching
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
 async function loadPendingStudents() {
   const data = await fetchJSON("/api/admin/students/pending");
-  if (data.data.length === 0) {
-    pendingStudents.innerHTML = "<li>No pending students.</li>";
-    return;
-  }
-  pendingStudents.innerHTML = data.data
-    .map(
-      (s) => `<li>
-        <strong>${s.student_id}</strong> - ${s.first_name} ${s.last_name} (${s.dept_name})
-        <br />
-        <button class="inline-btn" onclick="approveStudent('${s.student_id}')">Approve</button>
-      </li>`
-    )
-    .join("");
+  document.getElementById("statPendingStudents").textContent = data.data.length;
+  if (!data.data.length) { pendingStudents.innerHTML = "<li>No pending students.</li>"; return; }
+  pendingStudents.innerHTML = data.data.map(s => `<li>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <strong>${s.first_name} ${s.last_name}</strong>
+        <span style="color:var(--text-muted);margin-left:8px">${s.department_name || ""}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="status-badge status-pending">${s.student_type}</span>
+        <button class="inline-btn" onclick="approveStudent(${s.student_id})">Approve</button>
+      </div>
+    </div>
+    <div style="margin-top:6px;color:var(--text-muted);font-size:0.82rem">
+      ${s.email} · Year ${s.year_of_study} · Enrolled ${s.year_enrolled}
+    </div>
+  </li>`).join("");
 }
 
-async function loadNonCafeApprovedStudents() {
+async function loadNonCafeStudents() {
   const data = await fetchJSON("/api/admin/students/non-cafe-approved");
-  if (data.data.length === 0) {
-    nonCafeStudents.innerHTML = "<option value=''>No approved non-cafe students</option>";
-    return;
-  }
-  nonCafeStudents.innerHTML = data.data
-    .map(
-      (s) =>
-        `<option value="${s.student_id}">${s.student_id} - ${s.first_name} ${s.last_name}</option>`
-    )
-    .join("");
+  document.getElementById("statApproved").textContent = data.data.length;
+  if (!data.data.length) { nonCafeStudents.innerHTML = "<option>No approved NON_CAFE students</option>"; return; }
+  nonCafeStudents.innerHTML = data.data.map(s =>
+    `<option value="${s.student_id}">${s.first_name} ${s.last_name} (${s.email})</option>`
+  ).join("");
 }
 
-async function loadPendingStipends() {
-  const data = await fetchJSON("/api/admin/stipends/pending");
-  if (data.data.length === 0) {
-    pendingStipends.innerHTML = "<li>No pending stipend payments.</li>";
-    return;
-  }
-  pendingStipends.innerHTML = data.data
-    .map(
-      (t) => `<li>
-        <strong>#${t.transaction_id}</strong> - ${t.student_id} (${t.first_name} ${t.last_name})
-        <br />Month: ${String(t.stipend_month).slice(0, 10)} | Amount: ${t.amount}
-        <br />
-        <button class="inline-btn" onclick="confirmStipend(${t.transaction_id})">Confirm Payment</button>
-      </li>`
-    )
-    .join("");
-}
-
-async function approveStudent(studentId) {
-  try {
-    await fetchJSON(`/api/admin/students/${studentId}/approve`, { method: "PATCH" });
-    await refreshAdminData();
-  } catch (error) {
-    alert(error.message);
-  }
-}
-
-async function confirmStipend(transactionId) {
-  try {
-    await fetchJSON(`/api/admin/stipends/${transactionId}/confirm`, {
-      method: "PATCH",
-      body: JSON.stringify({}),
-    });
-    await refreshAdminData();
-  } catch (error) {
-    alert(error.message);
-  }
-}
-
-async function refreshAdminData() {
-  if (!authToken) return;
-  await Promise.all([
-    loadPendingStudents(),
-    loadNonCafeApprovedStudents(),
-    loadPendingStipends(),
-    loadAuditLog(),
-    loadFeedbackAdmin(),
-  ]);
-}
-
-async function loadMonthlyReport(month) {
-  const data = await fetchJSON(`/api/admin/reports/monthly?month=${encodeURIComponent(month)}`);
-  if (!data.data) {
-    monthlyReportBox.textContent = "No transactions found for this month.";
-    return;
-  }
-  monthlyReportBox.textContent = JSON.stringify(data.data, null, 2);
+async function loadPendingPayments() {
+  const data = await fetchJSON("/api/admin/payments/pending");
+  document.getElementById("statPendingPayments").textContent = data.data.length;
+  if (!data.data.length) { pendingPayments.innerHTML = "<li>No pending payments.</li>"; return; }
+  pendingPayments.innerHTML = data.data.map(p => {
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `<li>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <strong>${p.first_name} ${p.last_name}</strong>
+          <span style="color:var(--text-muted);margin-left:8px">${months[p.payment_month-1]} ${p.payment_year}</span>
+          <span style="color:var(--text-muted);margin-left:8px">${p.amount} ETB</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="inline-btn" onclick="confirmPayment(${p.payment_id})">Confirm</button>
+          <button class="inline-btn" onclick="markSent(${p.payment_id})">Mark Sent</button>
+        </div>
+      </div>
+    </li>`;
+  }).join("");
 }
 
 async function loadAuditLog() {
   const data = await fetchJSON("/api/admin/audit/recent");
-  if (!data.data.length) {
-    auditLogList.innerHTML = "<li>No admin actions logged yet.</li>";
-    return;
-  }
-  auditLogList.innerHTML = data.data
-    .map(
-      (l) => `<li>
-        <strong>${l.action_type}</strong> by ${l.admin_username}
-        <br />Student: ${l.target_student_id || "-"} | Tx: ${l.target_transaction_id || "-"}
-        <br />${l.details || ""}
-        <br /><small>${String(l.created_at).replace("T", " ").slice(0, 19)}</small>
-      </li>`
-    )
-    .join("");
+  if (!data.data.length) { auditLogList.innerHTML = "<li>No audit entries yet.</li>"; return; }
+  auditLogList.innerHTML = data.data.map(l => `<li>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong>${l.action} → ${l.target_table}</strong>
+      <span style="color:var(--text-muted);font-size:0.8rem">${String(l.logged_at).replace("T"," ").slice(0,19)}</span>
+    </div>
+    <div style="margin-top:6px;color:var(--text-muted);font-size:0.85rem">${l.new_value || l.old_value || "—"}</div>
+  </li>`).join("");
 }
 
-async function loadFeedbackAdmin() {
-  if (!feedbackAdminList) return;
-  const data = await fetchJSON("/api/admin/feedback/recent");
-  if (!data.data.length) {
-    feedbackAdminList.innerHTML = "<li>No feedback submitted yet.</li>";
-    return;
-  }
-  feedbackAdminList.innerHTML = data.data
-    .map((f) => {
-      const photo = f.photo_path ? `<a href="${f.photo_path}" target="_blank">photo</a>` : "no photo";
-      return `<li>
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
-          <strong>${f.category}</strong>
-          <span class="status-badge ${f.status === "RESOLVED" ? "status-paid" : f.status === "IN_REVIEW" ? "status-pending" : "status-failed"}">${f.status}</span>
-        </div>
-        <div style="margin-top:6px;color:rgba(255,255,255,0.8);">
-          ${f.student_id} - ${f.first_name} ${f.last_name} (${f.cafe_status})
-        </div>
-        <div style="margin-top:10px;">${f.message}</div>
-        <div style="margin-top:8px;">Attachment: ${photo}</div>
-        <div style="margin-top:8px;color:rgba(255,255,255,0.75);">Admin note: ${f.admin_note || "-"}</div>
-        <div class="form-grid" style="margin-top:12px;">
-          <label>Status
-            <select id="fb_status_${f.feedback_id}">
-              <option value="OPEN" ${f.status === "OPEN" ? "selected" : ""}>OPEN</option>
-              <option value="IN_REVIEW" ${f.status === "IN_REVIEW" ? "selected" : ""}>IN_REVIEW</option>
-              <option value="RESOLVED" ${f.status === "RESOLVED" ? "selected" : ""}>RESOLVED</option>
-            </select>
-          </label>
-          <label>Note
-            <input id="fb_note_${f.feedback_id}" value="${(f.admin_note || "").replace(/"/g, "&quot;")}" />
-          </label>
-          <button class="full" type="button" onclick="updateFeedback(${f.feedback_id})">Save</button>
-        </div>
-      </li>`;
-    })
-    .join("");
+async function loadReport() {
+  const data = await fetchJSON("/api/admin/reports/department-summary");
+  if (!data.data || !data.data.length) { reportBox.textContent = "No payment data found."; return; }
+  reportBox.textContent = JSON.stringify(data.data, null, 2);
 }
 
-async function updateFeedback(feedbackId) {
+async function approveStudent(id) {
   try {
-    const status = document.getElementById(`fb_status_${feedbackId}`)?.value;
-    const admin_note = document.getElementById(`fb_note_${feedbackId}`)?.value || "";
-    await fetchJSON(`/api/admin/feedback/${feedbackId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ status, admin_note }),
-    });
-    await loadFeedbackAdmin();
-  } catch (e) {
-    alert(e.message);
-  }
+    await fetchJSON(`/api/admin/students/${id}/approve`, { method: "PATCH" });
+    await refreshAll();
+  } catch (e) { alert(e.message); }
 }
 
-adminLoginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const formData = new FormData(adminLoginForm);
-  const payload = Object.fromEntries(formData.entries());
+async function confirmPayment(id) {
+  try {
+    await fetchJSON(`/api/admin/payments/${id}/confirm`, { method: "PATCH" });
+    await refreshAll();
+  } catch (e) { alert(e.message); }
+}
+
+async function markSent(id) {
+  try {
+    await fetchJSON(`/api/admin/payments/${id}/send`, { method: "PATCH" });
+    await refreshAll();
+  } catch (e) { alert(e.message); }
+}
+
+async function refreshAll() {
+  if (!authToken) return;
+  await Promise.all([loadPendingStudents(), loadNonCafeStudents(), loadPendingPayments(), loadAuditLog()]);
+  // Sent payments stat
+  try {
+    const d = await fetchJSON("/api/admin/payments/sent-count");
+    document.getElementById("statSentPayments").textContent = d.data.count;
+  } catch(_){}
+}
+
+// Login
+adminLoginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(adminLoginForm);
+  const payload = Object.fromEntries(fd.entries());
   try {
     const data = await fetchJSON("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, role: "admin" }),
     });
-    if (data.data.user.role !== "ADMIN") {
-      authToken = "";
-      adminMessage.textContent = "This account is not an admin account.";
-      return;
-    }
     authToken = data.data.token;
     localStorage.setItem("admin_token", authToken);
-    localStorage.setItem("aau_token", authToken); // For kitchen
-    adminMessage.textContent = `Logged in as ${data.data.user.username}`;
-    await refreshAdminData();
+    showMsg(adminMessage, `Logged in as ${data.data.user.full_name}`, false);
+    statsRow.style.display = "grid";
+    adminPanel.style.display = "block";
+    await refreshAll();
   } catch (error) {
-    adminMessage.textContent = error.message;
+    showMsg(adminMessage, error.message);
   }
 });
 
-monthlyReportForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const formData = new FormData(monthlyReportForm);
-  const month = formData.get("month");
-  try {
-    await loadMonthlyReport(month);
-  } catch (error) {
-    monthlyReportBox.textContent = error.message;
-  }
-});
-
-stipendForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const formData = new FormData(stipendForm);
-  const payload = Object.fromEntries(formData.entries());
-
-  if (payload.stipend_month) {
-    if (/^\d{4}-\d{2}$/.test(payload.stipend_month)) {
-      payload.stipend_month = `${payload.stipend_month}-01`;
-    } else {
-      const date = new Date(payload.stipend_month);
-      if (!Number.isNaN(date.getTime())) {
-        payload.stipend_month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
-      }
-    }
-  }
-
-  try {
-    await fetchJSON("/api/admin/stipends", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    stipendMessage.textContent = "Pending stipend created.";
-    stipendForm.reset();
-    await refreshAdminData();
-  } catch (error) {
-    stipendMessage.textContent = error.message;
-  }
-});
-
-refreshAdmin.addEventListener("click", refreshAdminData);
+// Logout
 adminLogoutBtn.addEventListener("click", () => {
   authToken = "";
   localStorage.removeItem("admin_token");
-  localStorage.removeItem("aau_token");
-  adminMessage.textContent = "Logged out.";
-  pendingStudents.innerHTML = "<li>Login as admin to load data.</li>";
-  pendingStipends.innerHTML = "<li>Login as admin to load data.</li>";
-  monthlyReportBox.textContent = "Login and choose month to view report.";
-  auditLogList.innerHTML = "<li>Login as admin to load activity log.</li>";
+  showMsg(adminMessage, "Logged out.", false);
+  statsRow.style.display = "none";
+  adminPanel.style.display = "none";
 });
 
-window.approveStudent = approveStudent;
-window.confirmStipend = confirmStipend;
-window.updateFeedback = updateFeedback;
+loadReportBtn.addEventListener("click", () => loadReport().catch(e => { reportBox.textContent = e.message; }));
 
+window.approveStudent = approveStudent;
+window.confirmPayment = confirmPayment;
+window.markSent = markSent;
+
+// Auto-restore session
 if (authToken) {
-  adminMessage.textContent = "Session restored.";
-  refreshAdminData().catch(() => {
+  statsRow.style.display = "grid";
+  adminPanel.style.display = "block";
+  showMsg(adminMessage, "Session restored.", false);
+  refreshAll().catch(() => {
     authToken = "";
     localStorage.removeItem("admin_token");
-    adminMessage.textContent = "Saved session expired. Please login again.";
+    showMsg(adminMessage, "Session expired. Please login again.");
+    statsRow.style.display = "none";
+    adminPanel.style.display = "none";
   });
 }
-

@@ -3,82 +3,130 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AAU Admin Dashboard</title>
+    <title>AAU — Admin Dashboard</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header class="topbar">
       <div class="topbar-inner">
-        <div>
-          <div class="brand">Addis Ababa University</div>
-          <div class="subtitle">Administrative Dashboard</div>
+        <div class="brand-block">
+          <div class="brand-logo">AAU</div>
+          <div>
+            <div class="brand">Addis Ababa University</div>
+            <div class="subtitle">Administrative Dashboard</div>
+          </div>
         </div>
         <nav class="nav-links">
           <a href="/">Registration</a>
           <a href="/student">Student Portal</a>
-          <a href="/admin">Admin</a>
+          <a href="/admin" class="active">Admin</a>
         </nav>
       </div>
     </header>
-    <main class="container">
-      <section class="hero">
-        <h1>AAU Admin Dashboard</h1>
-        <p>Secure workspace for student approvals, stipend operations, reporting,.</p>
-      </section>
 
+    <main class="container">
+      <!-- Login -->
       <section class="card auth-card">
         <div class="auth-header">
-          <h2 style="margin: 0;">Admin Login</h2>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="card-header-icon amber">🔐</div>
+            <h2>Admin Login</h2>
+          </div>
           <button id="adminLogoutBtn" class="inline-btn" type="button">Logout</button>
         </div>
-        <form id="adminLoginForm" class="form-grid" style="margin-top: 15px;">
-          <label>Admin Username <input name="username" value="admin" required /></label>
-          <label>Admin Password <input name="password" type="password" value="admin123" required /></label>
+        <form id="adminLoginForm" class="form-grid" style="margin-top: 1rem;">
+          <label>Email <input name="email" type="email" value="kassahun@aau.edu.et" required /></label>
+          <label>Password <input name="password" type="password" value="Admin123" required /></label>
           <button class="full" type="submit">Admin Login</button>
         </form>
         <p id="adminMessage" class="message"></p>
       </section>
 
-      <section class="card">
-        <div class="admin-controls">
-          <button id="refreshAdmin">Refresh Data</button>
+      <!-- Stats Row -->
+      <div class="stats-row" id="statsRow" style="display:none">
+        <div class="stat-card"><div class="stat-value" id="statPendingStudents">0</div><div class="stat-label">Pending Students</div></div>
+        <div class="stat-card"><div class="stat-value" id="statApproved">0</div><div class="stat-label">Approved</div></div>
+        <div class="stat-card"><div class="stat-value" id="statPendingPayments">0</div><div class="stat-label">Pending Payments</div></div>
+        <div class="stat-card"><div class="stat-value" id="statSentPayments">0</div><div class="stat-label">Payments Sent</div></div>
+      </div>
+
+      <!-- Admin Panel -->
+      <div id="adminPanel" style="display:none">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="tab-students" type="button">👥 Students</button>
+          <button class="tab-btn" data-tab="tab-payments" type="button">💰 Payments</button>
+          <button class="tab-btn" data-tab="tab-reports" type="button">📊 Reports</button>
+          <button class="tab-btn" data-tab="tab-audit" type="button">📋 Audit Log</button>
         </div>
 
-        <h3>Pending Students</h3>
-        <ul id="pendingStudents"><li>Login as admin to load data.</li></ul>
+        <!-- Tab: Students -->
+        <div class="tab-content active" id="tab-students">
+          <section class="card">
+            <div class="card-header">
+              <div class="card-header-icon blue">👥</div>
+              <h2>Pending Student Approvals</h2>
+            </div>
+            <ul id="pendingStudents"><li>Loading…</li></ul>
+          </section>
+        </div>
 
-        <h3>Create Monthly Cost Sharing (NON_CAFE)</h3>
-        <form id="stipendForm" class="form-grid">
-          <label>Student
-            <select name="student_id" id="nonCafeStudents" required></select>
-          </label>
-          <label>Month <input name="stipend_month" type="month" required /></label>
-          <label>Amount (fixed) <input name="amount_fixed" value="3000" disabled /></label>
-          <button class="full" type="submit">Create Pending Monthly Payment</button>
-        </form>
-        <p id="stipendMessage" class="message"></p>
+        <!-- Tab: Payments -->
+        <div class="tab-content" id="tab-payments">
+          <section class="card">
+            <div class="card-header">
+              <div class="card-header-icon green">💳</div>
+              <h2>Create Monthly Payment</h2>
+            </div>
+            <form id="paymentForm" class="form-grid">
+              <label>NON_CAFE Student <select name="student_id" id="nonCafeStudents" required></select></label>
+              <label>Month <input name="payment_month" type="number" min="1" max="12" placeholder="1–12" required /></label>
+              <label>Year <input name="payment_year" type="number" min="2020" max="2030" placeholder="2026" required /></label>
+              <label>Amount (fixed) <input name="amount" value="3000" disabled /></label>
+              <button class="full" type="submit">Create Pending Payment</button>
+            </form>
+            <p id="paymentMessage" class="message"></p>
+          </section>
+          <section class="card">
+            <div class="card-header">
+              <div class="card-header-icon amber">⏳</div>
+              <h2>Pending Payment Confirmations</h2>
+            </div>
+            <ul id="pendingPayments"><li>Loading…</li></ul>
+          </section>
+        </div>
 
-        <h3>Pending Stipend Confirmations</h3>
-        <ul id="pendingStipends"><li>Login as admin to load data.</li></ul>
+        <!-- Tab: Reports -->
+        <div class="tab-content" id="tab-reports">
+          <section class="card">
+            <div class="card-header">
+              <div class="card-header-icon blue">📊</div>
+              <h2>Department Payment Summary</h2>
+            </div>
+            <button id="loadReportBtn" type="button" style="margin-bottom:1rem">Load Report</button>
+            <pre id="reportBox">Click "Load Report" to view department payment summary.</pre>
+          </section>
+        </div>
 
-        <h3>Monthly Report</h3>
-        <form id="monthlyReportForm">
-          <label>Month (YYYY-MM-01) <input name="month" type="date" required /></label>
-          <button type="submit">Load Report</button>
-        </form>
-        <pre id="monthlyReportBox">Login and choose month to view report.</pre>
-
-        <h3>Recent Admin Activity</h3>
-        <ul id="auditLogList"><li>Login as admin to load activity log.</li></ul>
-
-        <h3>Student Feedback / Complaints</h3>
-        <p style="color: rgba(255,255,255,0.75); margin-top: -10px;">
-          Review FOOD concerns (CAFE) and PAYMENT concerns (NON_CAFE). You can add a note and resolve them.
-        </p>
-        <ul id="feedbackAdminList"><li>Login as admin to load feedback.</li></ul>
-      </section>
-
+        <!-- Tab: Audit -->
+        <div class="tab-content" id="tab-audit">
+          <section class="card">
+            <div class="card-header">
+              <div class="card-header-icon red">📋</div>
+              <h2>Recent Audit Log</h2>
+            </div>
+            <ul id="auditLogList"><li>Loading…</li></ul>
+          </section>
+        </div>
+      </div>
     </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">AAU Café Management & Stipend System</div>
+        <p>Full-Stack Web Application · PostgreSQL · Node.js · JWT Auth · REST API</p>
+        <p class="footer-members">Designed & Developed by <strong style="color:var(--accent)">Abdusalam Oumer</strong></p>
+      </div>
+    </footer>
 
     <script src="/admin.js"></script>
   </body>

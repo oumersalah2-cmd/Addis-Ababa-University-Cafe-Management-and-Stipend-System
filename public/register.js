@@ -1,87 +1,113 @@
 const deptSelect = document.getElementById("deptSelect");
-const cafeStatus = document.getElementById("cafeStatus");
-const bankAccount = document.getElementById("bankAccount");
+const dormSelect = document.getElementById("dormSelect");
+const studentType = document.getElementById("studentType");
 const studentForm = document.getElementById("studentForm");
 const studentMessage = document.getElementById("studentMessage");
+const registerBtn = document.getElementById("registerBtn");
+const pwStrength = document.getElementById("pwStrength");
+const passwordInput = studentForm.querySelector('input[name="password"]');
+
+const API = window.location.origin;
 
 async function fetchJSON(url, options = {}) {
   const response = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
-  const contentType = response.headers.get("content-type") || "";
+  const ct = response.headers.get("content-type") || "";
   let data;
-  if (contentType.includes("application/json")) {
+  if (ct.includes("application/json")) {
     data = await response.json();
   } else {
     await response.text();
-    throw new Error(
-      `Server returned non-JSON response for ${url}. Please restart backend server and refresh page.`
-    );
+    throw new Error("Server returned non-JSON response. Please check backend.");
   }
-  if (!response.ok || !data.ok) {
-    throw new Error(data.error || "Request failed");
-  }
+  if (!response.ok || !data.ok) throw new Error(data.error || "Request failed");
   return data;
 }
 
-function toggleBankAccountRequirement() {
-  const isNonCafe = cafeStatus.value === "NON_CAFE";
-  bankAccount.required = isNonCafe;
-  bankAccount.placeholder = isNonCafe
-    ? "Required for NON_CAFE students"
-    : "Optional (ignored for CAFE students)";
+function showMessage(text, isError = true) {
+  studentMessage.textContent = text;
+  studentMessage.className = "message " + (isError ? "msg-error" : "msg-success");
 }
 
+// Password strength
+function checkPasswordStrength(pw) {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+  pwStrength.className = "pw-strength";
+  if (score >= 4) pwStrength.classList.add("pw-strong");
+  else if (score >= 3) pwStrength.classList.add("pw-medium");
+  else if (score >= 1) pwStrength.classList.add("pw-weak");
+}
+
+passwordInput.addEventListener("input", () => checkPasswordStrength(passwordInput.value));
+
+// Load departments
 async function loadDepartments() {
   try {
     const data = await fetchJSON("/api/departments");
     deptSelect.innerHTML = data.data
-      .map((dept) => `<option value="${dept.dept_id}">${dept.dept_name}</option>`)
+      .map(d => `<option value="${d.department_id}">${d.department_name}</option>`)
       .join("");
-  } catch (_error) {
-    studentMessage.textContent = "Error loading departments.";
+  } catch (_e) {
+    showMessage("Could not load departments.");
   }
 }
 
-studentForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const formData = new FormData(studentForm);
-  const payload = Object.fromEntries(formData.entries());
-  payload.year_of_study = Number(payload.year_of_study);
-  payload.dept_id = Number(payload.dept_id);
-  
-  if (payload.cafe_status === "CAFE") {
-    payload.bank_account_number = "";
+// Load dormitories
+async function loadDormitories() {
+  try {
+    const data = await fetchJSON("/api/dormitories");
+    dormSelect.innerHTML = data.data
+      .map(d => `<option value="${d.dormitory_id}">${d.dorm_name} (Block ${d.block})</option>`)
+      .join("");
+  } catch (_e) {
+    showMessage("Could not load dormitories.");
   }
+}
+
+// Submit
+studentForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(studentForm);
+  const payload = Object.fromEntries(fd.entries());
+  payload.year_of_study = Number(payload.year_of_study);
+  payload.year_enrolled = Number(payload.year_enrolled);
+  payload.department_id = Number(payload.department_id);
+  payload.dormitory_id = Number(payload.dormitory_id);
+
   const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(payload.password || "");
   if (!strong) {
-    studentMessage.textContent =
-      "Password must be 8+ chars and include uppercase, lowercase, and number.";
+    showMessage("Password must be 8+ chars with uppercase, lowercase, and a number.");
     return;
   }
+
+  registerBtn.classList.add("btn-loading");
+  registerBtn.disabled = true;
 
   try {
     await fetchJSON("/api/students/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    studentMessage.textContent = "Registration completed. Redirecting to student login...";
+    showMessage("Registration successful! Redirecting to login…", false);
     setTimeout(() => {
-      const username = encodeURIComponent(payload.username || "");
-      window.location.href = `/student?registered=1&username=${username}`;
-    }, 900);
+      const email = encodeURIComponent(payload.email || "");
+      window.location.href = `/student?registered=1&email=${email}`;
+    }, 1200);
   } catch (error) {
-    studentMessage.textContent = error.message;
+    showMessage(error.message);
+  } finally {
+    registerBtn.classList.remove("btn-loading");
+    registerBtn.disabled = false;
   }
 });
 
-cafeStatus.addEventListener("change", toggleBankAccountRequirement);
-
-async function boot() {
-  toggleBankAccountRequirement();
-  await loadDepartments();
-}
-
-boot();
-
+// Boot
+Promise.all([loadDepartments(), loadDormitories()]);

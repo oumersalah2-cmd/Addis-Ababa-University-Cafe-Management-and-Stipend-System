@@ -3,87 +3,93 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AAU Student Portal</title>
+    <title>AAU — Student Portal</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header class="topbar">
       <div class="topbar-inner">
-        <div>
-          <div class="brand">Addis Ababa University</div>
-          <div class="subtitle">Student Portal</div>
+        <div class="brand-block">
+          <div class="brand-logo">AAU</div>
+          <div>
+            <div class="brand">Addis Ababa University</div>
+            <div class="subtitle">Student Portal</div>
+          </div>
         </div>
         <nav class="nav-links">
           <a href="/">Registration</a>
-          <a href="/student">Student Portal</a>
+          <a href="/student" class="active">Student Portal</a>
           <a href="/admin">Admin</a>
         </nav>
       </div>
     </header>
+
     <main class="container">
+      <!-- Login Card -->
       <section class="card auth-card">
         <div class="auth-header">
-          <h2 style="margin: 0;">Student Login</h2>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="card-header-icon blue">🔑</div>
+            <h2>Student Login</h2>
+          </div>
           <button id="studentLogoutBtn" class="inline-btn" type="button">Logout</button>
         </div>
-        <form id="studentLoginForm" class="form-grid" style="margin-top: 15px;">
-          <label>Username <input name="username" autocomplete="username" required /></label>
+        <form id="studentLoginForm" class="form-grid" style="margin-top: 1rem;">
+          <label>Email <input name="email" type="email" placeholder="your@stu.aau.et" autocomplete="email" required /></label>
           <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
           <button class="full" type="submit">Login</button>
         </form>
-        <p style="margin: 12px 0 0; color: rgba(255,255,255,0.75);">
-          Login to complain and see your profile.
-        </p>
+        <p style="margin:10px 0 0;color:var(--text-muted);font-size:0.85rem">Login to view your profile and payment status.</p>
         <p id="studentLoginMessage" class="message"></p>
       </section>
 
+      <!-- Portal Content (hidden until login) -->
       <div id="portalContent" style="display:none;">
+        <!-- Account Status -->
         <section class="card" id="approvalCard">
-          <h2>Account Status</h2>
-          <p id="approvalMessage">Loading account status...</p>
+          <div class="card-header">
+            <div class="card-header-icon green">✓</div>
+            <h2>Account Status</h2>
+          </div>
+          <p id="approvalMessage">Loading…</p>
         </section>
 
+        <!-- Profile -->
         <section class="card">
-          <h2>My Profile</h2>
-          <div id="profileBox" class="profile-info">Loading...</div>
+          <div class="card-header">
+            <div class="card-header-icon amber">👤</div>
+            <h2>My Profile</h2>
+          </div>
+          <div id="profileBox" class="profile-info">Loading…</div>
         </section>
 
-        <section class="card">
-          <h2>Notifications</h2>
-          <ul id="notificationList"><li>Loading notifications...</li></ul>
+        <!-- Payment Tracker (NON_CAFE only) -->
+        <section class="card" id="paymentCard" style="display:none;">
+          <div class="card-header">
+            <div class="card-header-icon green">💰</div>
+            <h2>Monthly Cash Payments (3,000 ETB)</h2>
+          </div>
+          <div id="paymentTracker"><p>Loading payment history…</p></div>
         </section>
 
-        <section class="card" id="nonCafePaymentsCard" style="display:none;">
-          <h2>Monthly Cost Sharing (Sep → Jun)</h2>
-          <div id="paymentTracker"><p>Loading payment tracker...</p></div>
-        </section>
-
-        <section class="card">
-          <h2>Feedback / Complaint</h2>
-          <p style="color: rgba(255,255,255,0.75); margin-top: -10px;">
-            Cafe students: report food issues. Non-cafe students: report payment issues.
-          </p>
-          <form id="feedbackForm" class="form-grid">
-            <label>Category
-              <select name="category" id="feedbackCategory" required>
-                <option value="FOOD">FOOD</option>
-                <option value="PAYMENT">PAYMENT</option>
-              </select>
-            </label>
-            <label>Photo (optional)
-              <input name="photo" type="file" accept="image/*" />
-            </label>
-            <label class="full">Message
-              <input name="message" placeholder="Write your concern..." required />
-            </label>
-            <button class="full" type="submit">Submit</button>
-          </form>
-          <p id="feedbackMessage" class="message"></p>
-          <h3 style="margin-top: 25px;">My Recent Feedback</h3>
-          <ul id="feedbackList"><li>Loading...</li></ul>
+        <!-- Meal History (CAFE only) -->
+        <section class="card" id="mealCard" style="display:none;">
+          <div class="card-header">
+            <div class="card-header-icon blue">🍽️</div>
+            <h2>Meal Attendance History</h2>
+          </div>
+          <ul id="mealList"><li>Loading…</li></ul>
         </section>
       </div>
     </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">AAU Café Management & Stipend System</div>
+        <p>Full-Stack Web Application · PostgreSQL · Node.js · JWT Auth · REST API</p>
+        <p class="footer-members">Designed & Developed by <strong style="color:var(--accent)">Abdusalam Oumer</strong></p>
+      </div>
+    </footer>
 
     <script src="/student.js"></script>
   </body>
